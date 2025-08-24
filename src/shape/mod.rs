@@ -1,6 +1,7 @@
 use glam::Vec3;
+use std::array::IntoIter;
 
-use crate::types::{Hit, Material, Ray, Transform, Transformable};
+use crate::types::{Hit, Material, Ray, Transform, Transformable, find_first_hit};
 
 pub enum Shape {
     UnitBox {
@@ -114,36 +115,15 @@ impl Shape {
                     }
                 }
             }
-            Shape::Cylinder { material } => {
-                let mut best_hit =
-                    intersect_cap_with_radius_one(ray, 1.0, Vec3::new(0.0, 0.0, 1.0), material);
-
-                if let Some(hit_side) =
-                    intersect_cap_with_radius_one(ray, 0.0, Vec3::new(0.0, 0.0, -1.0), material)
-                {
-                    best_hit = best_hit.filter(|hit| hit.t < hit_side.t).or(Some(hit_side))
-                }
-
-                if let Some(hit_side) =
-                    intersect_cylinder_infinite(ray, material).filter(test_if_hits_between_0_1(ray))
-                {
-                    best_hit = best_hit.filter(|hit| hit.t < hit_side.t).or(Some(hit_side))
-                }
-
-                best_hit
-            }
-            Shape::Cone { material } => {
-                let mut best_hit =
-                    intersect_cap_with_radius_one(ray, 0.0, Vec3::new(0.0, 0.0, -1.0), material);
-
-                if let Some(hit_side) =
-                    intersect_cone_infinite(ray, material).filter(test_if_hits_between_0_1(ray))
-                {
-                    best_hit = best_hit.filter(|hit| hit.t < hit_side.t).or(Some(hit_side))
-                }
-
-                best_hit
-            }
+            Shape::Cylinder { material } => find_first_hit([
+                intersect_cap_with_radius_one(ray, 1.0, Vec3::new(0.0, 0.0, 1.0), material),
+                intersect_cap_with_radius_one(ray, 0.0, Vec3::new(0.0, 0.0, -1.0), material),
+                intersect_cylinder_infinite(ray, material).filter(test_if_hits_between_0_1(ray)),
+            ]),
+            Shape::Cone { material } => find_first_hit([
+                intersect_cap_with_radius_one(ray, 0.0, Vec3::new(0.0, 0.0, -1.0), material),
+                intersect_cone_infinite(ray, material).filter(test_if_hits_between_0_1(ray)),
+            ]),
         }
     }
 }

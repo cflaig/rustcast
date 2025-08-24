@@ -1,7 +1,7 @@
 use crate::scenes::{
     make_axes_scene, make_cornell_scene, make_default_scene, make_scene_cylinder_plane,
 };
-use crate::types::Hit;
+use crate::types::{Hit, find_first_hit};
 use glam::Vec3;
 
 pub fn draw_frame(frame: &mut [u8], width: u32, height: u32, draw_normals: bool, scene: u8) {
@@ -23,12 +23,7 @@ pub fn draw_frame(frame: &mut [u8], width: u32, height: u32, draw_normals: bool,
 
             let ray = camera.generate_ray(x as f32 / width as f32, y as f32 / height as f32);
 
-            let mut best_hit: Option<Hit> = None;
-            for s in shapes.iter() {
-                if let Some(hit) = s.intersect(&ray) {
-                    best_hit = best_hit.filter(|h| h.t < hit.t).or(Some(hit))
-                }
-            }
+            let best_hit = find_first_hit(shapes.iter().map(|s| s.intersect(&ray)));
 
             let color = best_hit.map_or(Vec3::new(0.0, 0.0, 0.0), |hit| {
                 let l = (light - hit.point(&ray)).normalize();

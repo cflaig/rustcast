@@ -47,6 +47,16 @@ impl Hit {
     }
 }
 
+pub fn find_first_hit(shape_iterator: impl IntoIterator<Item = Option<Hit>>) -> Option<Hit> {
+    shape_iterator.into_iter().filter_map(|s| s).min_by(|x, y| {
+        if (x.t < y.t) {
+            std::cmp::Ordering::Less
+        } else {
+            std::cmp::Ordering::Greater
+        }
+    })
+}
+
 impl Transformable for Ray {
     fn to_local_coordinates(&self, transform: &Transform) -> Self {
         Ray {
