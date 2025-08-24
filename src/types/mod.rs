@@ -1,5 +1,10 @@
 use glam::{Mat4, Vec3, Vec4};
 
+pub trait Transformable {
+    fn to_local_coordinates(&self, transform: &Transform) -> Self;
+    fn to_global_coordinates(&self, transform: &Transform) -> Self;
+}
+
 #[derive(Copy, Clone, Debug)]
 pub struct Ray {
     pub origin: Vec3,
@@ -39,6 +44,35 @@ impl Hit {
     }
     pub fn point(&self, ray: &Ray) -> Vec3 {
         ray.origin + ray.direction * self.t
+    }
+}
+
+impl Transformable for Ray {
+    fn to_local_coordinates(&self, transform: &Transform) -> Self {
+        Ray {
+            origin: transform
+                .global_to_local(self.origin.extend(1.0))
+                .truncate(),
+            direction: transform
+                .global_to_local(self.direction.extend(0.0))
+                .truncate(),
+        }
+    }
+    fn to_global_coordinates(&self, transform: &Transform) -> Self {
+        todo!()
+    }
+}
+
+impl Transformable for Hit {
+    fn to_local_coordinates(&self, transform: &Transform) -> Self {
+        todo!()
+    }
+    fn to_global_coordinates(&self, transform: &Transform) -> Self {
+        Hit::new(
+            self.t,
+            transform.local_normal_to_global(self.normal),
+            self.material,
+        )
     }
 }
 

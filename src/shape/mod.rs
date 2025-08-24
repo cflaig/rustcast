@@ -1,6 +1,6 @@
 use glam::Vec3;
 
-use crate::types::{Hit, Material, Ray, Transform};
+use crate::types::{Hit, Material, Ray, Transform, Transformable};
 
 pub trait Shape {
     // Returns (t, normal_at_hit, material) for the first intersection along the ray
@@ -20,26 +20,8 @@ impl TransformedShape {
 
 impl Shape for TransformedShape {
     fn intersect(&self, ray: &Ray) -> Option<Hit> {
-        let local_direction = self.transform.global_to_local(ray.direction.extend(0.0));
-        let local_origin = self.transform.global_to_local(ray.origin.extend(1.0));
-        let transformed_ray = Ray {
-            origin: local_origin.truncate(),
-            direction: local_direction.truncate(),
-        };
-        if let Some(Hit {
-            t,
-            normal,
-            material,
-        }) = self.shape.intersect(&transformed_ray)
-        {
-            Some(Hit::new(
-                t,
-                self.transform.local_normal_to_global(normal),
-                material,
-            ))
-        } else {
-            None
-        }
+        let transformed_ray = ray.to_local_coordinates(&self.transform);
+        self.shape.intersect(&transformed_ray).map(|hit|hit.to_global_coordinates(&self.transform))
     }
 }
 
