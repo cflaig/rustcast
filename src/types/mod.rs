@@ -20,6 +20,12 @@ pub struct Material {
     pub specular_coef: f32,
 }
 
+#[derive(Copy, Clone, Debug)]
+pub struct Light {
+    pub position: Vec3,
+    pub color: Vec3,
+}
+
 pub struct Hit {
     pub t: f32,
     pub normal: Vec3,

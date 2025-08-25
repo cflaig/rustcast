@@ -1,15 +1,28 @@
+use std::ops::Mul;
 use crate::camera::Camera;
-use crate::types::find_first_hit;
+use crate::types::{Hit, Ray, find_first_hit, Light};
 use glam::Vec3;
+use crate::shape::Shape;
+use rand::{Rng, SeedableRng};
+use rand::rngs::SmallRng;
+
+
+#[derive(Copy, Clone, Debug)]
+pub enum RenderMode {
+    Normals,
+    Raycast,
+    Raytrace,
+    Pathtracing,
+}
 
 pub fn draw_frame(
     frame: &mut [u8],
     width: u32,
     height: u32,
-    draw_normals: bool,
+    render_mode: RenderMode,
     camera: &Camera,
-    light: Vec3,
-    shapes: &Vec<crate::shape::Shape>,
+    light: &Vec<Light>,
+    shapes: &Vec<Shape>,
 ) {
     let width = width as usize;
     let height = height as usize;
@@ -24,16 +37,12 @@ pub fn draw_frame(
 
             let best_hit = find_first_hit(shapes.iter().map(|s| s.intersect(&ray)));
 
-            let color = best_hit.map_or(Vec3::new(0.0, 0.0, 0.0), |hit| {
-                let l = (light - hit.point(&ray)).normalize();
-                let brightness = l.dot(hit.normal).max(0.0);
-                if (draw_normals) {
-                    hit.normal + Vec3::new(1.0, 1.0, 1.0)
-                } else {
-                    hit.material.ambient * hit.material.color
-                        + (1.0 - hit.material.ambient) * brightness * hit.material.color
-                }
-            });
+            let color = match render_mode {
+                RenderMode::Normals => {render_normals(best_hit)}
+                RenderMode::Raycast => {raycast(&camera, &ray, best_hit)}
+                RenderMode::Raytrace => {raytrace(light, shapes, &ray, best_hit)}
+                RenderMode::Pathtracing => {pathtrace(shapes, &ray, best_hit)}
+            };
 
             frame_buffer[idx] = color.x;
             frame_buffer[idx + 1] = color.y;
@@ -57,4 +66,63 @@ pub fn draw_frame(
             frame[idx + 3] = 255;
         }
     }
+}
+
+fn render_normals(best_hit: Option<Hit>) -> Vec3 {
+    best_hit.map_or(Vec3::new(0.0, 0.0, 0.0), |hit| {
+        hit.normal + Vec3::new(1.0, 1.0, 1.0)
+    })
+}
+fn raycast(camera: &Camera, ray: &Ray, best_hit: Option<Hit>) -> Vec3 {
+    best_hit.map_or(Vec3::new(0.0, 0.0, 0.0), |hit| {
+        let l = (camera.pos - hit.point(&ray)).normalize();
+        let brightness = l.dot(hit.normal).max(0.0);
+        hit.material.ambient * hit.material.color
+            + (1.0 - hit.material.ambient) * brightness * hit.material.color
+    })
+}
+
+const ORIGIN_BIAS: f32 = 1e-4;              // or scene_extent * 1e-4
+
+fn raytrace(light: &Vec<Light>, shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>) -> Vec3 {
+    best_hit.map_or(Vec3::new(0.0, 0.0, 0.0), |hit| {
+
+        light.iter().map(|l| {
+        let mut p = hit.point(&ray);
+            p += hit.normal * ORIGIN_BIAS;
+        let distance = (p - l.position).length();
+
+        let light_ray = Ray {
+            origin: p,
+            direction: (l.position - p).normalize(),
+        };
+            (l, distance, light_ray)
+        }).map(|(l, distance, light_ray)| {
+        hit.material.ambient * hit.material.color +
+            find_first_hit(shapes.iter().map(|s| s.intersect(&light_ray))).filter(|h|h.t > ORIGIN_BIAS && h.t < distance - ORIGIN_BIAS).map_or_else(|| {
+            let light = light_ray.direction.dot(hit.normal).max(0.0) * l.color;
+                (1.0 - hit.material.ambient) * light * hit.material.color
+        }, |_| {0.0*hit.material.ambient * hit.material.color})}).reduce(|a, b| a + b).unwrap_or(0.0*hit.material.ambient * hit.material.color)
+    })
+}
+
+fn pathtrace(shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>) -> Vec3 {
+    best_hit.map_or(Vec3::new(0.0, 0.0, 0.0), |hit| {
+        for _ in 0..5 {
+
+        }
+        let l = Vec3::new(0.0, 0.0, 0.0);
+        let brightness = l.dot(hit.normal).max(0.0);
+        hit.material.ambient * hit.material.color
+            + (1.0 - hit.material.ambient) * brightness * hit.material.color
+    })
+}
+
+pub fn sample_random_on_sphere(rng: &mut SmallRng)-> Vec3 {
+    //z: latitude of the sphere
+    let z: f32 = rng.random_range(-1.0..=1.0);
+    let phi: f32 = rng.random_range(0.0..=std::f32::consts::TAU);
+    // Convert spherical to Cartesian.
+    let r_xy = (1.0f32 - z * z).sqrt();          // circle radius at latitude z
+    Vec3::new(r_xy * phi.cos(), r_xy * phi.sin(), z)
 }

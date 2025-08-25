@@ -27,6 +27,9 @@ pub enum Shape {
         shape: Box<Shape>,
         transform: Transform,
     },
+    Disk {
+        material: Material,
+    },
 }
 
 impl Shape {
@@ -72,10 +75,14 @@ impl Shape {
                     } else {
                         (min, min_pos)
                     };
-                    let p = ray.origin + ray.direction * t;
-                    let mut n = Vec3::new(0.0, 0.0, 0.0);
-                    n[pos] = 1.0f32 * p[pos].signum();
-                    Some(Hit::new(t, n, *material))
+                    if t < 0.0 {
+                        None
+                    } else {
+                        let p = ray.origin + ray.direction * t;
+                        let mut n = Vec3::new(0.0, 0.0, 0.0);
+                        n[pos] = 1.0f32 * p[pos].signum();
+                        Some(Hit::new(t, n, *material))
+                    }
                 } else {
                     None
                 }
@@ -92,10 +99,18 @@ impl Shape {
                 if discriminant < 0.0 {
                     None
                 } else {
-                    let t = -b - discriminant.sqrt();
+                    let mut d = discriminant.sqrt();
+                    if d > -b {
+                        d = -d
+                    }
+                    let t = -b - d;
+                    if t > 0.0 {
                     let p = ray.origin + ray.direction * t;
                     let n = (p - center).normalize();
-                    Some(Hit::new(t, n, *material))
+                        Some(Hit::new(t, n, *material))
+                    } else {
+                            None
+                    }
                 }
             }
             Shape::Plane {
@@ -124,6 +139,9 @@ impl Shape {
                 intersect_cap_with_radius_one(ray, 0.0, Vec3::new(0.0, 0.0, -1.0), material),
                 intersect_cone_infinite(ray, material).filter(test_if_hits_between_0_1(ray)),
             ]),
+            Shape::Disk { material } => {
+                intersect_cap_with_radius_one(ray, 0.0, Vec3::new(0.0, 0.0, -1.0), material)
+            }
         }
     }
 }
@@ -145,10 +163,19 @@ fn intersect_cap_with_radius_one(
 
 fn solve_quadratic(a: f32, b: f32, c: f32) -> Option<f32> {
     let discriminant = b * b - 4f32 * a * c;
+    const T_MIN: f32 = 0.0; //0.0 * f32::EPSILON;
     if discriminant < 0.0 {
         None
     } else {
-        Some((-b - discriminant.sqrt()) / (2f32 * a))
+        let sqrt_d = -discriminant.sqrt();
+        let q = -0.5 * (b + sqrt_d.copysign(b));
+        let t0 = q / a;
+        if t0 > 0.0 {
+            Some(t0.min(c / q))
+        } else {
+            let t1 = c / q;
+            (t1 > 0.0).then_some(t1)
+        }
     }
 }
 
