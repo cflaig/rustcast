@@ -20,14 +20,6 @@ pub struct Material {
     pub specular_coef: f32,
 }
 
-#[derive(Copy, Clone, Debug)]
-pub struct Camera {
-    pub up: Vec3,
-    pub right: Vec3,
-    pub look_dir: Vec3,
-    pub pos: Vec3,
-}
-
 pub struct Hit {
     pub t: f32,
     pub normal: Vec3,
@@ -83,28 +75,6 @@ impl Transformable for Hit {
             transform.local_normal_to_global(self.normal),
             self.material,
         )
-    }
-}
-
-impl Camera {
-    pub fn new(pos: Vec3, look_at: Vec3, up: Vec3, fov: f32) -> Self {
-        let look_dir = (look_at - pos).normalize();
-        let up = (up - look_dir.dot(up) * look_dir).normalize() * fov;
-        let right = look_dir.cross(up);
-        Camera {
-            up,
-            right,
-            look_dir,
-            pos,
-        }
-    }
-    pub fn generate_ray(&self, x: f32, y: f32) -> Ray {
-        let direction =
-            ((x - 0.5f32) * self.right + (1f32 - y - 0.5f32) * self.up + self.look_dir).normalize();
-        Ray {
-            origin: self.pos,
-            direction,
-        }
     }
 }
 

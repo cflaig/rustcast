@@ -1,3 +1,4 @@
+mod camera;
 mod renderer;
 mod scenes;
 mod shape;
@@ -9,7 +10,14 @@ use winit::event_loop::EventLoop;
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::WindowBuilder;
 
+use crate::camera::Camera;
 use crate::renderer::draw_frame;
+use crate::scenes::{
+    make_axes_scene, make_cornell_scene, make_default_scene, make_scene_cylinder_plane,
+};
+use crate::shape::Shape;
+use glam::Vec3;
+use std::time::Instant;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create event loop and window
@@ -32,7 +40,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut fb_height = size.height;
 
     let mut draw_normals = false;
-    let mut scene = 3;
+    let mut scene: u8 = 3;
+
+    // Current scene data (camera/light/shapes)
+    fn load_scene(scene: u8) -> (Camera, Vec3, Vec<Shape>) {
+        match scene {
+            1 => make_cornell_scene(),
+            2 => make_axes_scene(),
+            3 => make_scene_cylinder_plane(),
+            _ => make_default_scene(),
+        }
+    }
+    let (mut camera, mut light, mut shapes) = load_scene(scene);
+
+    let mut shift_down = false;
 
     // Run the event loop
     Ok(event_loop.run(move |event, elwt| {
@@ -52,8 +73,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     window.request_redraw();
                 }
                 WindowEvent::RedrawRequested => {
-                    // Draw our scene into the frame
-                    draw_frame(pixels.frame_mut(), fb_width, fb_height, draw_normals, scene);
+                    // Draw our scene into the frame and measure draw time
+                    let start = Instant::now();
+                    draw_frame(
+                        pixels.frame_mut(),
+                        fb_width,
+                        fb_height,
+                        draw_normals,
+                        &camera,
+                        light,
+                        &shapes,
+                    );
+                    let elapsed = start.elapsed();
+                    println!("Draw time: {:.3} ms", elapsed.as_secs_f64() * 1000.0);
 
                     // Render to the window
                     if pixels.render().is_err() {
@@ -71,7 +103,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         },
                     ..
                 } => {
+                    // Track shift state regardless of repeat
+                    match physical_key {
+                        PhysicalKey::Code(KeyCode::ShiftLeft)
+                        | PhysicalKey::Code(KeyCode::ShiftRight) => {
+                            shift_down = state == ElementState::Pressed;
+                        }
+                        _ => {}
+                    }
+
+                    // Handle non-repeating key presses for discrete steps
                     if state == ElementState::Pressed && !repeat {
+                        let move_step = 0.2f32;
+                        let rot_step = 0.05f32; // radians
                         match physical_key {
                             PhysicalKey::Code(KeyCode::KeyN) => {
                                 draw_normals = !draw_normals;
@@ -80,6 +124,52 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             PhysicalKey::Code(KeyCode::KeyZ) => {
                                 // Cycle scenes: 0 (default), 1 (cornell), 2 (axes), 3 (cylinder+plane)
                                 scene = (scene + 1) % 4;
+                                let (c, l, s) = load_scene(scene);
+                                camera = c;
+                                light = l;
+                                shapes = s;
+                                window.request_redraw();
+                            }
+                            // Movement keys
+                            PhysicalKey::Code(KeyCode::KeyW) => {
+                                camera.move_along_up(move_step);
+                                window.request_redraw();
+                            }
+                            PhysicalKey::Code(KeyCode::KeyS) => {
+                                camera.move_along_up(-move_step);
+                                window.request_redraw();
+                            }
+                            PhysicalKey::Code(KeyCode::KeyA) => {
+                                camera.move_along_right(-move_step);
+                                window.request_redraw();
+                            }
+                            PhysicalKey::Code(KeyCode::KeyD) => {
+                                camera.move_along_right(move_step);
+                                window.request_redraw();
+                            }
+                            PhysicalKey::Code(KeyCode::KeyR) => {
+                                if shift_down {
+                                    camera.move_along_look(-move_step);
+                                } else {
+                                    camera.move_along_look(move_step);
+                                }
+                                window.request_redraw();
+                            }
+                            // Arrow keys for yaw (left/right) and pitch (up/down)
+                            PhysicalKey::Code(KeyCode::ArrowLeft) => {
+                                camera.yaw(-rot_step);
+                                window.request_redraw();
+                            }
+                            PhysicalKey::Code(KeyCode::ArrowRight) => {
+                                camera.yaw(rot_step);
+                                window.request_redraw();
+                            }
+                            PhysicalKey::Code(KeyCode::ArrowUp) => {
+                                camera.pitch(rot_step);
+                                window.request_redraw();
+                            }
+                            PhysicalKey::Code(KeyCode::ArrowDown) => {
+                                camera.pitch(-rot_step);
                                 window.request_redraw();
                             }
                             _ => {}

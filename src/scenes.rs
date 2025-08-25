@@ -1,7 +1,9 @@
 use glam::{Mat4, Vec3};
+use std::f32::consts::PI;
 
+use crate::camera::Camera;
 use crate::shape::Shape;
-use crate::types::{Camera, Material, Transform};
+use crate::types::{Material, Transform};
 
 // Scene builders
 pub fn make_default_scene() -> (Camera, Vec3, Vec<Shape>) {

@@ -1,19 +1,18 @@
-use crate::scenes::{
-    make_axes_scene, make_cornell_scene, make_default_scene, make_scene_cylinder_plane,
-};
-use crate::types::{Hit, find_first_hit};
+use crate::camera::Camera;
+use crate::types::find_first_hit;
 use glam::Vec3;
 
-pub fn draw_frame(frame: &mut [u8], width: u32, height: u32, draw_normals: bool, scene: u8) {
+pub fn draw_frame(
+    frame: &mut [u8],
+    width: u32,
+    height: u32,
+    draw_normals: bool,
+    camera: &Camera,
+    light: Vec3,
+    shapes: &Vec<crate::shape::Shape>,
+) {
     let width = width as usize;
     let height = height as usize;
-
-    let (camera, light, shapes) = match scene {
-        1 => make_cornell_scene(),
-        2 => make_axes_scene(),
-        3 => make_scene_cylinder_plane(),
-        _ => make_default_scene(),
-    };
 
     let mut frame_buffer = vec![0.0f32; width * height * 3];
 
@@ -31,7 +30,8 @@ pub fn draw_frame(frame: &mut [u8], width: u32, height: u32, draw_normals: bool,
                 if (draw_normals) {
                     hit.normal + Vec3::new(1.0, 1.0, 1.0)
                 } else {
-                    hit.material.ambient * hit.material.color + brightness * hit.material.color
+                    hit.material.ambient * hit.material.color
+                        + (1.0 - hit.material.ambient) * brightness * hit.material.color
                 }
             });
 
