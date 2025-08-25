@@ -125,16 +125,23 @@ pub fn make_scene_cylinder_plane() -> (Camera, Vec3, Vec<Shape>) {
 
 pub fn make_cornell_scene() -> (Camera, Vec3, Vec<Shape>) {
     let camera = Camera::new(
-        Vec3::new(0.0, -5.0, 0.5),
-        Vec3::new(0.0, 0.0, 0.5),
+        Vec3::new(0.0, -7.0, 0.5),
+        Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(0.0, 0.0, 1.0),
         1.0,
     );
-    let light = Vec3::new(0.0, -1.0, 1.8);
+    let light = Vec3::new(0.0, -0.75, 1.9);
 
     let white = Material {
         color: Vec3::splat(0.9),
         ambient: 0.2,
+        reflection: 0.0,
+        shininess: 0.0,
+        specular_coef: 0.0,
+    };
+    let white_light = Material {
+        color: Vec3::splat(0.9),
+        ambient: 1.0,
         reflection: 0.0,
         shininess: 0.0,
         specular_coef: 0.0,
@@ -154,21 +161,29 @@ pub fn make_cornell_scene() -> (Camera, Vec3, Vec<Shape>) {
         specular_coef: 0.0,
     };
 
+    let blue = Material {
+        color: Vec3::new(0.1, 0.1, 0.9),
+        ambient: 0.2,
+        reflection: 0.0,
+        shininess: 0.0,
+        specular_coef: 0.0,
+    };
+
     let shapes: Vec<Shape> = vec![
         Shape::Plane {
             normal: Vec3::new(0.0, 0.0, 1.0),
-            d: 0.0,
+            d: -2.0,
             material: white,
         },
         Shape::Plane {
             normal: Vec3::new(0.0, 0.0, -1.0),
             d: -2.0,
-            material: white,
+            material: blue,
         },
         Shape::Plane {
             normal: Vec3::new(0.0, -1.0, 0.0),
-            d: -3.0,
-            material: white,
+            d: -2.0,
+            material: blue,
         },
         Shape::Plane {
             normal: Vec3::new(1.0, 0.0, 0.0),
@@ -181,11 +196,41 @@ pub fn make_cornell_scene() -> (Camera, Vec3, Vec<Shape>) {
             material: green,
         },
         Shape::Sphere {
-            center: Vec3::new(-1.2, 0.2, 0.5),
-            radius: 0.5,
+            center: Vec3::new(-1.2, -0.2, 0.5),
+            radius: 0.66666,
             material: white,
         },
-        Shape::Cylinder { material: white },
+        Shape::TransformedShape {
+            shape: Box::new(Shape::Cylinder { material: white }),
+            transform: Transform::new(
+                Mat4::from_translation(Vec3::new(-1.111, -1.333, -2.0))
+                    * Mat4::from_scale(Vec3::new(0.25, 0.25, 1.5)),
+            ),
+        },
+        Shape::TransformedShape {
+            shape: Box::new(Shape::Cone { material: white }),
+            transform: Transform::new(
+                Mat4::from_translation(Vec3::new(1.5, 0.5, -2.0))
+                    * Mat4::from_scale(Vec3::new(0.25, 0.25, 1.0)),
+            ),
+        },
+        Shape::TransformedShape {
+            shape: Box::new(Shape::UnitBox { material: white }),
+            transform: Transform::new(
+                Mat4::from_translation(Vec3::new(0.0, 0.25, -1.24))
+                    * Mat4::from_rotation_z(PI / 6.0)
+                    * Mat4::from_scale(Vec3::new(0.75, 0.75, 0.75)),
+            ),
+        },
+        Shape::TransformedShape {
+            shape: Box::new(Shape::UnitBox {
+                material: white_light,
+            }),
+            transform: Transform::new(
+                Mat4::from_translation(Vec3::new(0.0, -0.5, 1.99998))
+                    * Mat4::from_scale(Vec3::new(0.5, 0.5, 0.00001)),
+            ),
+        },
     ];
     (camera, light, shapes)
 }
