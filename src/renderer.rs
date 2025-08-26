@@ -1,6 +1,7 @@
 use crate::camera::Camera;
-use crate::types::find_first_hit;
+use crate::types::{find_first_hit, Light};
 use glam::Vec3;
+use crate::shape::Shape;
 
 pub fn draw_frame(
     frame: &mut [u8],
@@ -8,8 +9,8 @@ pub fn draw_frame(
     height: u32,
     draw_normals: bool,
     camera: &Camera,
-    light: Vec3,
-    shapes: &Vec<crate::shape::Shape>,
+    light: &Vec<Light>,
+    shapes: &Vec<Shape>,
 ) {
     let width = width as usize;
     let height = height as usize;
@@ -25,7 +26,7 @@ pub fn draw_frame(
             let best_hit = find_first_hit(shapes.iter().map(|s| s.intersect(&ray)));
 
             let color = best_hit.map_or(Vec3::new(0.0, 0.0, 0.0), |hit| {
-                let l = (light - hit.point(&ray)).normalize();
+                let l = (camera.pos - hit.point(&ray)).normalize();
                 let brightness = l.dot(hit.normal).max(0.0);
                 if (draw_normals) {
                     hit.normal + Vec3::new(1.0, 1.0, 1.0)

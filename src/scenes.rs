@@ -3,17 +3,17 @@ use std::f32::consts::PI;
 
 use crate::camera::Camera;
 use crate::shape::Shape;
-use crate::types::{Material, Transform};
+use crate::types::{Light, Material, Transform};
 
 // Scene builders
-pub fn make_default_scene() -> (Camera, Vec3, Vec<Shape>) {
+pub fn make_default_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
     let camera = Camera::new(
         Vec3::new(0.0, -5.0, -1.25),
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(0.0, 0.0, 1.0),
         1.1,
     );
-    let light = Vec3::new(2.0, -2.0, 3.0);
+    let light = vec![Light { position: Vec3::new(2.0, -2.0, 3.0), color: Vec3::new(1.0,1.0,1.0) }];
 
     let blue = Material {
         color: Vec3::new(0.0, 0.0, 1.0),
@@ -43,14 +43,15 @@ pub fn make_default_scene() -> (Camera, Vec3, Vec<Shape>) {
 }
 
 #[allow(dead_code)]
-pub fn make_scene_with_eight_boxes() -> (Camera, Vec3, Vec<Shape>) {
+pub fn make_scene_with_eight_boxes() -> (Camera, Vec<Light>, Vec<Shape>) {
     let camera = Camera::new(
         Vec3::new(0.0, -15.0, 5.),
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(0.0, 0.0, 1.0),
         1.1,
     );
-    let light = Vec3::new(3.0, -2.0, 4.0);
+    let light = vec![Light { position: Vec3::new(3.0, -2.0, 4.0), color: Vec3::new(1.0,1.0,1.0) }];
+
 
     let blue = Material {
         color: Vec3::new(0.0, 0.0, 1.0),
@@ -87,14 +88,14 @@ pub fn make_scene_with_eight_boxes() -> (Camera, Vec3, Vec<Shape>) {
 }
 
 #[allow(dead_code)]
-pub fn make_scene_cylinder_plane() -> (Camera, Vec3, Vec<Shape>) {
+pub fn make_scene_cylinder_plane() -> (Camera, Vec<Light>, Vec<Shape>) {
     let camera = Camera::new(
         Vec3::new(0.0, -5.0, -0.75),
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(0.0, 0.0, 1.0),
         1.1,
     );
-    let light = Vec3::new(2.0, -2.0, 3.0);
+    let light = vec![Light { position: Vec3::new(2.0, -2.0, 3.0), color: Vec3::new(1.0,1.0,1.0) }];
 
     let blue = Material {
         color: Vec3::new(0.0, 0.0, 1.0),
@@ -123,14 +124,18 @@ pub fn make_scene_cylinder_plane() -> (Camera, Vec3, Vec<Shape>) {
     (camera, light, shapes)
 }
 
-pub fn make_cornell_scene() -> (Camera, Vec3, Vec<Shape>) {
+pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
     let camera = Camera::new(
         Vec3::new(0.0, -7.0, 0.5),
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(0.0, 0.0, 1.0),
         1.0,
     );
-    let light = Vec3::new(0.0, -0.75, 1.9);
+    let light = vec![
+        Light { position: Vec3::new(0.0, -0.75, 1.8), color: Vec3::new(1.0,0.0,0.0) },
+        Light { position: Vec3::new(-0.25, -0.25, 1.8), color: Vec3::new(0.0,1.0,0.0) },
+        Light { position: Vec3::new(0.25, -0.25, 1.8), color: Vec3::new(0.0,0.0,1.0) }
+    ];
 
     let white = Material {
         color: Vec3::splat(0.9),
@@ -235,14 +240,14 @@ pub fn make_cornell_scene() -> (Camera, Vec3, Vec<Shape>) {
     (camera, light, shapes)
 }
 
-pub fn make_axes_scene() -> (Camera, Vec3, Vec<Shape>) {
+pub fn make_axes_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
     let camera = Camera::new(
         Vec3::new(1.5, 4.0, 1.35),
         Vec3::new(0.5, 0.0, 0.0),
         Vec3::new(0.0, 0.0, 1.0),
         1.1,
     );
-    let light = Vec3::new(2.0, 4.0, 3.0);
+    let light = vec![Light { position: Vec3::new(2.0, 4.0, 3.0), color: Vec3::new(1.0,1.0,1.0) }];
 
     let red = Material {
         color: Vec3::new(1.0, 0.0, 0.0),

@@ -16,8 +16,8 @@ use crate::scenes::{
     make_axes_scene, make_cornell_scene, make_default_scene, make_scene_cylinder_plane,
 };
 use crate::shape::Shape;
-use glam::Vec3;
 use std::time::Instant;
+use crate::types::Light;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create event loop and window
@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut scene: u8 = 3;
 
     // Current scene data (camera/light/shapes)
-    fn load_scene(scene: u8) -> (Camera, Vec3, Vec<Shape>) {
+    fn load_scene(scene: u8) -> (Camera, Vec<Light>, Vec<Shape>) {
         match scene {
             1 => make_cornell_scene(),
             2 => make_axes_scene(),
@@ -81,7 +81,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         fb_height,
                         draw_normals,
                         &camera,
-                        light,
+                        &light,
                         &shapes,
                     );
                     let elapsed = start.elapsed();
