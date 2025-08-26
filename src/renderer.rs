@@ -79,7 +79,34 @@ fn raycast(camera: &Camera, ray: &Ray, best_hit: Option<Hit>) -> Vec3 {
 }
 
 fn raytrace(light: &Vec<Light>, shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>) -> Vec3 {
-    Vec3::new(0.0, 0.0, 0.0)
+    const ORIGIN_BIAS: f32 = 1e-4;
+    const BLACK: Vec3 = Vec3::new(0.0, 0.0, 0.0);
+
+    best_hit.map_or(Vec3::new(0.0, 0.0, 0.0), |hit| {
+        hit.material.ambient * hit.material.color
+            + light
+                .iter()
+                .map(|l| {
+                    let mut p = hit.point(&ray) + hit.normal * ORIGIN_BIAS;
+                    let distance = (p - l.position).length();
+                    let light_ray = Ray {
+                        origin: p,
+                        direction: (l.position - p) / distance,
+                    };
+
+                    find_first_hit(shapes.iter().map(|s| s.intersect(&light_ray)))
+                        .filter(|h| h.t > ORIGIN_BIAS && h.t < distance - ORIGIN_BIAS)
+                        .map_or_else(
+                            || {
+                                let light = light_ray.direction.dot(hit.normal).max(0.0) * l.color;
+                                (1.0 - hit.material.ambient) * light * hit.material.color
+                            },
+                            |_| BLACK,
+                        )
+                })
+                .reduce(|a, b| a + b)
+                .unwrap_or(BLACK)
+    })
 }
 
 fn pathtrace(shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>) -> Vec3 {
