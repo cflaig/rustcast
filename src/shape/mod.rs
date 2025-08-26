@@ -72,10 +72,14 @@ impl Shape {
                     } else {
                         (min, min_pos)
                     };
-                    let p = ray.origin + ray.direction * t;
-                    let mut n = Vec3::new(0.0, 0.0, 0.0);
-                    n[pos] = 1.0f32 * p[pos].signum();
-                    Some(Hit::new(t, n, *material))
+                    if t < 0.0 {
+                        None
+                    } else {
+                        let p = ray.origin + ray.direction * t;
+                        let mut n = Vec3::new(0.0, 0.0, 0.0);
+                        n[pos] = 1.0f32 * p[pos].signum();
+                        Some(Hit::new(t, n, *material))
+                    }
                 } else {
                     None
                 }
@@ -92,10 +96,18 @@ impl Shape {
                 if discriminant < 0.0 {
                     None
                 } else {
-                    let t = -b - discriminant.sqrt();
-                    let p = ray.origin + ray.direction * t;
-                    let n = (p - center).normalize();
-                    Some(Hit::new(t, n, *material))
+                    let mut d = discriminant.sqrt();
+                    if d > -b {
+                        d = -d
+                    }
+                    let t = -b - d;
+                    if t > 0.0 {
+                        let p = ray.origin + ray.direction * t;
+                        let n = (p - center).normalize();
+                        Some(Hit::new(t, n, *material))
+                    } else {
+                        None
+                    }
                 }
             }
             Shape::Plane {
@@ -148,7 +160,15 @@ fn solve_quadratic(a: f32, b: f32, c: f32) -> Option<f32> {
     if discriminant < 0.0 {
         None
     } else {
-        Some((-b - discriminant.sqrt()) / (2f32 * a))
+        let sqrt_d = -discriminant.sqrt();
+        let q = -0.5 * (b + sqrt_d.copysign(b));
+        let t0 = q / a;
+        if t0 > 0.0 {
+            Some(t0.min(c / q))
+        } else {
+            let t1 = c / q;
+            (t1 > 0.0).then_some(t1)
+        }
     }
 }
 
