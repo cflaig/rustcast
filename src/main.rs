@@ -11,7 +11,7 @@ use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::WindowBuilder;
 
 use crate::camera::Camera;
-use crate::renderer::draw_frame;
+use crate::renderer::{RenderMode, draw_frame};
 use crate::scenes::{
     make_axes_scene, make_cornell_scene, make_default_scene, make_scene_cylinder_plane,
 };
@@ -39,7 +39,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut fb_width = size.width;
     let mut fb_height = size.height;
 
-    let mut draw_normals = false;
+    let mut render_mode = RenderMode::Raycast;
     let mut scene: u8 = 3;
 
     // Current scene data (camera/light/shapes)
@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             _ => make_default_scene(),
         }
     }
-    let (mut camera, mut light, mut shapes) = load_scene(scene);
+    let (mut camera, mut lights, mut shapes) = load_scene(scene);
 
     let mut shift_down = false;
 
@@ -79,9 +79,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         pixels.frame_mut(),
                         fb_width,
                         fb_height,
-                        draw_normals,
+                        render_mode,
                         &camera,
-                        &light,
+                        &lights,
                         &shapes,
                     );
                     let elapsed = start.elapsed();
@@ -118,7 +118,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let rot_step = 0.05f32; // radians
                         match physical_key {
                             PhysicalKey::Code(KeyCode::KeyN) => {
-                                draw_normals = !draw_normals;
+                                render_mode = match render_mode {
+                                    RenderMode::Raycast => RenderMode::Raytrace,
+                                    RenderMode::Raytrace => RenderMode::Normals,
+                                    RenderMode::Normals => RenderMode::Pathtracing,
+                                    RenderMode::Pathtracing => RenderMode::Raycast,
+                                };
                                 window.request_redraw();
                             }
                             PhysicalKey::Code(KeyCode::KeyZ) => {
@@ -126,7 +131,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 scene = (scene + 1) % 4;
                                 let (c, l, s) = load_scene(scene);
                                 camera = c;
-                                light = l;
+                                lights = l;
                                 shapes = s;
                                 window.request_redraw();
                             }

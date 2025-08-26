@@ -1,13 +1,21 @@
 use crate::camera::Camera;
 use crate::shape::Shape;
-use crate::types::{Light, find_first_hit};
+use crate::types::{Hit, Light, Ray, find_first_hit};
 use glam::Vec3;
+
+#[derive(Copy, Clone, Debug)]
+pub enum RenderMode {
+    Normals,
+    Raycast,
+    Raytrace,
+    Pathtracing,
+}
 
 pub fn draw_frame(
     frame: &mut [u8],
     width: u32,
     height: u32,
-    draw_normals: bool,
+    render_mode: RenderMode,
     camera: &Camera,
     light: &Vec<Light>,
     shapes: &Vec<Shape>,
@@ -25,16 +33,12 @@ pub fn draw_frame(
 
             let best_hit = find_first_hit(shapes.iter().map(|s| s.intersect(&ray)));
 
-            let color = best_hit.map_or(Vec3::new(0.0, 0.0, 0.0), |hit| {
-                let l = (camera.pos - hit.point(&ray)).normalize();
-                let brightness = l.dot(hit.normal).max(0.0);
-                if (draw_normals) {
-                    hit.normal + Vec3::new(1.0, 1.0, 1.0)
-                } else {
-                    hit.material.ambient * hit.material.color
-                        + (1.0 - hit.material.ambient) * brightness * hit.material.color
-                }
-            });
+            let color = match render_mode {
+                RenderMode::Normals => render_normals(best_hit),
+                RenderMode::Raycast => raycast(&camera, &ray, best_hit),
+                RenderMode::Raytrace => raytrace(light, shapes, &ray, best_hit),
+                RenderMode::Pathtracing => pathtrace(shapes, &ray, best_hit),
+            };
 
             frame_buffer[idx] = color.x;
             frame_buffer[idx + 1] = color.y;
@@ -58,4 +62,26 @@ pub fn draw_frame(
             frame[idx + 3] = 255;
         }
     }
+}
+
+fn render_normals(best_hit: Option<Hit>) -> Vec3 {
+    best_hit.map_or(Vec3::new(0.0, 0.0, 0.0), |hit| {
+        hit.normal + Vec3::new(1.0, 1.0, 1.0)
+    })
+}
+fn raycast(camera: &Camera, ray: &Ray, best_hit: Option<Hit>) -> Vec3 {
+    best_hit.map_or(Vec3::new(0.0, 0.0, 0.0), |hit| {
+        let l = (camera.pos - hit.point(&ray)).normalize();
+        let brightness = l.dot(hit.normal).max(0.0);
+        hit.material.ambient * hit.material.color
+            + (1.0 - hit.material.ambient) * brightness * hit.material.color
+    })
+}
+
+fn raytrace(light: &Vec<Light>, shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>) -> Vec3 {
+    Vec3::new(0.0, 0.0, 0.0)
+}
+
+fn pathtrace(shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>) -> Vec3 {
+    Vec3::new(0.0, 0.0, 0.0)
 }
