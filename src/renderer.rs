@@ -4,7 +4,10 @@ use crate::types::{Hit, Light, Ray, find_first_hit};
 use glam::Vec3;
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
-use std::cmp::PartialEq;
+use rayon::iter::IndexedParallelIterator;
+use rayon::iter::ParallelIterator;
+use rayon::slice::ParallelSliceMut;
+use std::fmt::Debug;
 
 #[derive(Copy, Clone, Debug)]
 pub enum RenderMode {
@@ -26,36 +29,40 @@ pub fn draw_frame(
     let width = width as usize;
     let height = height as usize;
 
-    let mut rng: SmallRng = SmallRng::from_os_rng();
-
     let samples = match render_mode {
         RenderMode::Pathtracing => 10,
         _ => 1,
     };
 
-    for y in 0..height {
-        for x in 0..width {
-            let idx = (y * width + x) * 3;
+    frame_buffer
+        .par_chunks_mut(width * 3)
+        .enumerate()
+        .for_each(|(y, row)| {
+            let mut rng: SmallRng = SmallRng::from_os_rng();
 
-            let mut color = Vec3::new(0.0, 0.0, 0.0);
-            for _ in 0..samples {
-                let ray = camera.generate_ray(x as f32 / width as f32, y as f32 / height as f32);
+            for x in 0..width {
+                let idx = x * 3;
 
-                let best_hit = find_first_hit(shapes.iter().map(|s| s.intersect(&ray)));
+                let mut color = Vec3::new(0.0, 0.0, 0.0);
+                for _ in 0..samples {
+                    let ray =
+                        camera.generate_ray(x as f32 / width as f32, y as f32 / height as f32);
 
-                color += match render_mode {
-                    RenderMode::Normals => render_normals(best_hit),
-                    RenderMode::Raycast => raycast(&camera, &ray, best_hit),
-                    RenderMode::Raytrace => raytrace(light, shapes, &ray, best_hit),
-                    RenderMode::Pathtracing => pathtrace(shapes, &ray, best_hit, &mut rng),
-                };
+                    let best_hit = find_first_hit(shapes.iter().map(|s| s.intersect(&ray)));
+
+                    color += match render_mode {
+                        RenderMode::Normals => render_normals(best_hit),
+                        RenderMode::Raycast => raycast(&camera, &ray, best_hit),
+                        RenderMode::Raytrace => raytrace(light, shapes, &ray, best_hit),
+                        RenderMode::Pathtracing => pathtrace(shapes, &ray, best_hit, &mut rng),
+                    };
+                }
+
+                row[idx] += color.x;
+                row[idx + 1] += color.y;
+                row[idx + 2] += color.z;
             }
-
-            frame_buffer[idx] += color.x;
-            frame_buffer[idx + 1] += color.y;
-            frame_buffer[idx + 2] += color.z;
-        }
-    }
+        });
     samples
 }
 

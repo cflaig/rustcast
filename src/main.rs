@@ -88,7 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         &shapes,
                     );
                     let elapsed = start.elapsed();
-                    println!("Draw time: {:.3} ms", elapsed.as_secs_f64() * 1000.0);
+                    println!("Draw time: {:9.3} ms. Sample {:5} computed", elapsed.as_secs_f64() * 1000.0, sample_count);
 
                     let inv_gamma = 1.0 / 1.8;
                     let max = frame_buffer
