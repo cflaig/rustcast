@@ -13,7 +13,10 @@ pub fn make_default_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         Vec3::new(0.0, 0.0, 1.0),
         1.1,
     );
-    let light = vec![Light { position: Vec3::new(2.0, -2.0, 3.0), color: Vec3::new(1.0,1.0,1.0) }];
+    let light = vec![Light {
+        position: Vec3::new(2.0, -2.0, 3.0),
+        color: Vec3::new(1.0, 1.0, 1.0),
+    }];
 
     let blue = Material {
         color: Vec3::new(0.0, 0.0, 1.0),
@@ -50,8 +53,10 @@ pub fn make_scene_with_eight_boxes() -> (Camera, Vec<Light>, Vec<Shape>) {
         Vec3::new(0.0, 0.0, 1.0),
         1.1,
     );
-    let light = vec![Light { position: Vec3::new(3.0, -2.0, 4.0), color: Vec3::new(1.0,1.0,1.0) }];
-
+    let light = vec![Light {
+        position: Vec3::new(3.0, -2.0, 4.0),
+        color: Vec3::new(1.0, 1.0, 1.0),
+    }];
 
     let blue = Material {
         color: Vec3::new(0.0, 0.0, 1.0),
@@ -95,7 +100,10 @@ pub fn make_scene_cylinder_plane() -> (Camera, Vec<Light>, Vec<Shape>) {
         Vec3::new(0.0, 0.0, 1.0),
         1.1,
     );
-    let light = vec![Light { position: Vec3::new(2.0, -2.0, 3.0), color: Vec3::new(1.0,1.0,1.0) }];
+    let light = vec![Light {
+        position: Vec3::new(2.0, -2.0, 3.0),
+        color: Vec3::new(1.0, 1.0, 1.0),
+    }];
 
     let blue = Material {
         color: Vec3::new(0.0, 0.0, 1.0),
@@ -132,9 +140,18 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         1.0,
     );
     let light = vec![
-        Light { position: Vec3::new(0.0, -0.75, 1.8), color: Vec3::new(1.0,0.0,0.0) },
-        Light { position: Vec3::new(-0.25, -0.25, 1.8), color: Vec3::new(0.0,1.0,0.0) },
-        Light { position: Vec3::new(0.25, -0.25, 1.8), color: Vec3::new(0.0,0.0,1.0) }
+        Light {
+            position: Vec3::new(0.0, -0.75, 1.8),
+            color: Vec3::new(1.0, 0.0, 0.0),
+        },
+        Light {
+            position: Vec3::new(-0.25, -0.25, 1.8),
+            color: Vec3::new(0.0, 1.0, 0.0),
+        },
+        Light {
+            position: Vec3::new(0.25, -0.25, 1.8),
+            color: Vec3::new(0.0, 0.0, 1.0),
+        },
     ];
 
     let white = Material {
@@ -247,7 +264,10 @@ pub fn make_axes_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         Vec3::new(0.0, 0.0, 1.0),
         1.1,
     );
-    let light = vec![Light { position: Vec3::new(2.0, 4.0, 3.0), color: Vec3::new(1.0,1.0,1.0) }];
+    let light = vec![Light {
+        position: Vec3::new(2.0, 4.0, 3.0),
+        color: Vec3::new(1.0, 1.0, 1.0),
+    }];
 
     let red = Material {
         color: Vec3::new(1.0, 0.0, 0.0),

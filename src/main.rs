@@ -16,8 +16,8 @@ use crate::scenes::{
     make_axes_scene, make_cornell_scene, make_default_scene, make_scene_cylinder_plane,
 };
 use crate::shape::Shape;
-use std::time::Instant;
 use crate::types::Light;
+use std::time::Instant;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create event loop and window

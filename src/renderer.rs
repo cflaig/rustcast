@@ -1,7 +1,7 @@
 use crate::camera::Camera;
-use crate::types::{find_first_hit, Light};
-use glam::Vec3;
 use crate::shape::Shape;
+use crate::types::{Light, find_first_hit};
+use glam::Vec3;
 
 pub fn draw_frame(
     frame: &mut [u8],
