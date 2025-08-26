@@ -200,12 +200,12 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         Shape::Plane {
             normal: Vec3::new(0.0, 0.0, -1.0),
             d: -2.0,
-            material: blue,
+            material: white,
         },
         Shape::Plane {
             normal: Vec3::new(0.0, -1.0, 0.0),
             d: -2.0,
-            material: blue,
+            material: white,
         },
         Shape::Plane {
             normal: Vec3::new(1.0, 0.0, 0.0),
@@ -249,7 +249,7 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
                 material: white_light,
             }),
             transform: Transform::new(
-                Mat4::from_translation(Vec3::new(0.0, -0.5, 1.99998))
+                Mat4::from_translation(Vec3::new(0.0, 0.5, 1.99998))
                     * Mat4::from_scale(Vec3::new(0.5, 0.5, 0.00001)),
             ),
         },

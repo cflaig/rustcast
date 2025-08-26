@@ -55,6 +55,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut shift_down = false;
 
+    let mut frame_buffer = vec![0.0; 3 * 1024 * 1024];
+    let mut sample_count = 0;
+
     // Run the event loop
     Ok(event_loop.run(move |event, elwt| {
         match event {
@@ -75,8 +78,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 WindowEvent::RedrawRequested => {
                     // Draw our scene into the frame and measure draw time
                     let start = Instant::now();
-                    draw_frame(
-                        pixels.frame_mut(),
+                    sample_count += draw_frame(
+                        &mut frame_buffer,
                         fb_width,
                         fb_height,
                         render_mode,
@@ -86,6 +89,41 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     );
                     let elapsed = start.elapsed();
                     println!("Draw time: {:.3} ms", elapsed.as_secs_f64() * 1000.0);
+
+                    let inv_gamma = 1.0 / 1.8;
+                    let max = frame_buffer
+                        .clone()
+                        .into_iter()
+                        .reduce(f32::max)
+                        .unwrap_or(0.0);
+                    for y in 0..fb_height {
+                        for x in 0..fb_width {
+                            let idx_px = (y * fb_width + x) as usize;
+                            let idx_fb = idx_px * 3;
+
+                            // average radiance ----------------------------------------------------
+                            let mut r = frame_buffer[idx_fb] / sample_count as f32;
+                            let mut g = frame_buffer[idx_fb + 1] / sample_count as f32;
+                            let mut b = frame_buffer[idx_fb + 2] / sample_count as f32;
+
+                            // simple tone map: c' = c / (1 + c)  (Reinhard) -----------------------
+                            let half_intensity = 0.8 * max / sample_count as f32;
+                            r = r / (half_intensity + r);
+                            g = g / (half_intensity + g);
+                            b = b / (half_intensity + b);
+
+                            // γ-correction ---------------------------------------------------------
+                            r = r.powf(inv_gamma);
+                            g = g.powf(inv_gamma);
+                            b = b.powf(inv_gamma);
+
+                            let idx_img = idx_px * 4;
+                            pixels.frame_mut()[idx_img] = (r * 255.0) as u8;
+                            pixels.frame_mut()[idx_img + 1] = (g * 255.0) as u8;
+                            pixels.frame_mut()[idx_img + 2] = (b * 255.0) as u8;
+                            pixels.frame_mut()[idx_img + 3] = 255;
+                        }
+                    }
 
                     // Render to the window
                     if pixels.render().is_err() {
@@ -114,6 +152,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     // Handle non-repeating key presses for discrete steps
                     if state == ElementState::Pressed && !repeat {
+                        frame_buffer.fill(0.0);
+                        sample_count = 0;
                         let move_step = 0.2f32;
                         let rot_step = 0.05f32; // radians
                         match physical_key {
