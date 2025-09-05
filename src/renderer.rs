@@ -8,62 +8,101 @@ use rayon::iter::IndexedParallelIterator;
 use rayon::iter::ParallelIterator;
 use rayon::slice::ParallelSliceMut;
 use std::fmt::Debug;
+use strum_macros::{EnumIter, IntoStaticStr};
 
-#[derive(Copy, Clone, Debug)]
+#[derive(PartialEq, IntoStaticStr, EnumIter, Clone, Copy)]
 pub enum RenderMode {
     Normals,
     Raycast,
     Raytrace,
     Pathtracing,
 }
-
-pub fn draw_frame(
-    frame_buffer: &mut Vec<f32>,
-    width: u32,
-    height: u32,
+#[derive(Copy, Clone, Debug)]
+struct RenderPixel {
+    color: Vec3,
+    sample_count: u32,
+}
+pub struct Renderer {
+    frame_buffer: Vec<RenderPixel>,
+    width: usize,
+    height: usize,
     render_mode: RenderMode,
-    camera: &Camera,
-    light: &Vec<Light>,
-    shapes: &Vec<Shape>,
-) -> u32 {
-    let width = width as usize;
-    let height = height as usize;
+    camera: Camera,
+    light: Vec<Light>,
+    shapes: Vec<Shape>,
+}
 
-    let samples = match render_mode {
-        RenderMode::Pathtracing => 10,
-        _ => 1,
-    };
+impl Renderer {
+    pub fn new(
+        width: usize,
+        height: usize,
+        render_mode: RenderMode,
+        camera: Camera,
+        light: Vec<Light>,
+        shapes: Vec<Shape>,
+    ) -> Self {
+        let frame_buffer = vec![
+            RenderPixel {
+                color: Vec3::new(0.0, 0.0, 0.0),
+                sample_count: 0,
+            };
+            width * height
+        ];
+        Self {
+            frame_buffer,
+            width,
+            height,
+            render_mode,
+            camera,
+            light,
+            shapes,
+        }
+    }
+    pub fn render(&mut self) -> Vec<Vec3> {
+        let samples = match self.render_mode {
+            RenderMode::Pathtracing => 10,
+            _ => 1,
+        };
 
-    frame_buffer
-        .par_chunks_mut(width * 3)
-        .enumerate()
-        .for_each(|(y, row)| {
-            let mut rng: SmallRng = SmallRng::from_os_rng();
+        self.frame_buffer
+            .par_chunks_mut(self.width)
+            .enumerate()
+            .for_each(|(y, row)| {
+                let mut rng: SmallRng = SmallRng::from_os_rng();
 
-            for x in 0..width {
-                let idx = x * 3;
+                for x in 0..self.width {
+                    let mut color = Vec3::new(0.0, 0.0, 0.0);
+                    for _ in 0..samples {
+                        let ray = self.camera.generate_ray(
+                            x as f32 / self.width as f32,
+                            y as f32 / self.height as f32,
+                        );
 
-                let mut color = Vec3::new(0.0, 0.0, 0.0);
-                for _ in 0..samples {
-                    let ray =
-                        camera.generate_ray(x as f32 / width as f32, y as f32 / height as f32);
+                        let best_hit =
+                            find_first_hit(self.shapes.iter().map(|s| s.intersect(&ray)));
 
-                    let best_hit = find_first_hit(shapes.iter().map(|s| s.intersect(&ray)));
+                        color += match self.render_mode {
+                            RenderMode::Normals => render_normals(best_hit),
+                            RenderMode::Raycast => raycast(&self.camera, &ray, best_hit),
+                            RenderMode::Raytrace => {
+                                raytrace(&self.light, &self.shapes, &ray, best_hit)
+                            }
+                            RenderMode::Pathtracing => {
+                                pathtrace(&self.shapes, &ray, best_hit, &mut rng)
+                            }
+                        };
+                    }
 
-                    color += match render_mode {
-                        RenderMode::Normals => render_normals(best_hit),
-                        RenderMode::Raycast => raycast(&camera, &ray, best_hit),
-                        RenderMode::Raytrace => raytrace(light, shapes, &ray, best_hit),
-                        RenderMode::Pathtracing => pathtrace(shapes, &ray, best_hit, &mut rng),
-                    };
+                    row[x].color += color;
+                    row[x].sample_count += samples as u32;
                 }
+            });
 
-                row[idx] += color.x;
-                row[idx + 1] += color.y;
-                row[idx + 2] += color.z;
-            }
-        });
-    samples
+        self.frame_buffer
+            .iter()
+            .map(|p| p.color / (p.sample_count as f32))
+            .collect::<Vec<Vec3>>()
+    }
 }
 
 fn render_normals(best_hit: Option<Hit>) -> Vec3 {
@@ -124,7 +163,7 @@ fn pathtrace(shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>, rng: &mut Sm
                 new_d -= 2.0 * cos_n_d * cur_hit.normal; //new_d.reflect(h.normal)
             }
 
-            if (cur_hit.material.ambient > 0.0) {
+            if cur_hit.material.ambient > 0.0 {
                 incoming_light += ray_light * cur_hit.material.ambient * cur_hit.material.color;
                 break;
             }
