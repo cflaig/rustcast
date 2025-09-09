@@ -13,3 +13,6 @@ rand-wyrand = "0.3"
 strum_macros = "0.26.4"
 rayon = "1.11.0"
 
+[profile.profiling]
+inherits = "release"
+debug = true

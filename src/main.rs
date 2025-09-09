@@ -9,13 +9,14 @@ use renderer::{RenderMode, Renderer};
 use scenes::{make_axes_scene, make_cornell_scene, make_default_scene, make_scene_cylinder_plane};
 use shape::Shape;
 use std::time::Duration;
-use types::Light;
 
 use crate::renderer::RenderMode::Raycast;
 use eframe::egui::{Context, Ui, Vec2};
 use eframe::{Frame, egui};
 use glam::{Vec3, Vec4};
 use strum::IntoEnumIterator;
+use crate::scenes::make_scene_with_eight_boxes;
+use crate::types::LightSource;
 
 struct App {
     samples: u32,
@@ -97,6 +98,7 @@ impl eframe::App for App {
                 [size.x as usize, size.y as usize],
                 self.samples,
                 &mut self.renderer,
+                self.render_mode
             );
 
             ui.add(
@@ -127,8 +129,9 @@ pub fn get_max_quadratic_size(ui: &mut Ui) -> Vec2 {
     size
 }
 
-fn load_scene(scene: u8) -> (Camera, Vec<Light>, Vec<Shape>) {
+fn load_scene(scene: u8) -> (Camera, Vec<LightSource>, Vec<Shape>) {
     match scene {
+        0 => make_scene_with_eight_boxes(),
         1 => make_cornell_scene(),
         2 => make_axes_scene(),
         3 => make_scene_cylinder_plane(),
@@ -136,10 +139,24 @@ fn load_scene(scene: u8) -> (Camera, Vec<Light>, Vec<Shape>) {
     }
 }
 
-fn render(size: [usize; 2], samples: u32, renderer: &mut Renderer) -> Vec<u8> {
+fn render(size: [usize; 2], samples: u32, renderer: &mut Renderer, render_mode: RenderMode) -> Vec<u8> {
     let frame_buffer = renderer.render();
 
     let inv_gamma = 1.0 / 2.2;
+
+    match render_mode {
+        RenderMode::Pathtracing => tone_map_frame_buffer(frame_buffer, inv_gamma),
+        _ => clamp_max(frame_buffer),
+    }
+}
+
+fn clamp_max(frame_buffer: Vec<Vec3>) -> Vec<u8> {
+    let max_entry = frame_buffer.iter().flat_map(|v3| v3.to_array()).fold(0.0, |acc, b| b.max(acc));
+    frame_buffer.iter().map(|p| p / max_entry).flat_map(|v3| v3.extend(1.0).to_array()).map(|v4| (v4 * 255.0) as u8)
+        .collect::<Vec<u8>>()
+}
+
+fn tone_map_frame_buffer(frame_buffer: Vec<Vec3>, inv_gamma: f32) -> Vec<u8> {
     let exposure_inv = compute_exposure_inv(&frame_buffer);
 
     frame_buffer

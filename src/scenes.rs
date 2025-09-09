@@ -1,19 +1,19 @@
 use glam::{Mat4, Vec3};
-use std::f32::consts::PI;
+use std::f32::consts::{PI, TAU};
 
 use crate::camera::Camera;
 use crate::shape::Shape;
-use crate::types::{Light, Material, Transform};
+use crate::types::{LightSource, Material, Transform};
 
 // Scene builders
-pub fn make_default_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
+pub fn make_default_scene() -> (Camera, Vec<LightSource>, Vec<Shape>) {
     let camera = Camera::new(
         Vec3::new(0.0, -5.0, -1.25),
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(0.0, 0.0, 1.0),
         1.1,
     );
-    let light = vec![Light {
+    let light = vec![LightSource::Point {
         position: Vec3::new(2.0, -2.0, 3.0),
         color: Vec3::new(1.0, 1.0, 1.0),
     }];
@@ -46,14 +46,14 @@ pub fn make_default_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
 }
 
 #[allow(dead_code)]
-pub fn make_scene_with_eight_boxes() -> (Camera, Vec<Light>, Vec<Shape>) {
+pub fn make_scene_with_eight_boxes() -> (Camera, Vec<LightSource>, Vec<Shape>) {
     let camera = Camera::new(
         Vec3::new(0.0, -15.0, 5.),
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(0.0, 0.0, 1.0),
         1.1,
     );
-    let light = vec![Light {
+    let light = vec![LightSource::Point {
         position: Vec3::new(3.0, -2.0, 4.0),
         color: Vec3::new(1.0, 1.0, 1.0),
     }];
@@ -93,14 +93,14 @@ pub fn make_scene_with_eight_boxes() -> (Camera, Vec<Light>, Vec<Shape>) {
 }
 
 #[allow(dead_code)]
-pub fn make_scene_cylinder_plane() -> (Camera, Vec<Light>, Vec<Shape>) {
+pub fn make_scene_cylinder_plane() -> (Camera, Vec<LightSource>, Vec<Shape>) {
     let camera = Camera::new(
         Vec3::new(0.0, -5.0, -0.75),
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(0.0, 0.0, 1.0),
         1.1,
     );
-    let light = vec![Light {
+    let light = vec![LightSource::Point {
         position: Vec3::new(2.0, -2.0, 3.0),
         color: Vec3::new(1.0, 1.0, 1.0),
     }];
@@ -132,7 +132,7 @@ pub fn make_scene_cylinder_plane() -> (Camera, Vec<Light>, Vec<Shape>) {
     (camera, light, shapes)
 }
 
-pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
+pub fn make_cornell_scene() -> (Camera, Vec<LightSource>, Vec<Shape>) {
     let camera = Camera::new(
         Vec3::new(0.0, -7.0, 0.5),
         Vec3::new(0.0, 0.0, 0.0),
@@ -140,18 +140,14 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         1.0,
     );
     let light = vec![
-        Light {
-            position: Vec3::new(0.0, -0.75, 1.8),
-            color: Vec3::new(1.0, 0.0, 0.0),
-        },
-        Light {
-            position: Vec3::new(-0.25, -0.25, 1.8),
-            color: Vec3::new(0.0, 1.0, 0.0),
-        },
-        Light {
-            position: Vec3::new(0.25, -0.25, 1.8),
-            color: Vec3::new(0.0, 0.0, 1.0),
-        },
+
+        LightSource::TransformedShape {
+            light_source: Box::new(LightSource::Quad {
+                color: Vec3::new(1.0, 1.0, 1.0),
+            }),
+            transform: Transform::new(
+                Mat4::from_translation(Vec3::new(0.0, 0.0, 1.95))
+            ),        },
     ];
 
     let white = Material {
@@ -245,26 +241,26 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
             ),
         },
         Shape::TransformedShape {
-            shape: Box::new(Shape::UnitBox {
+            shape: Box::new(Shape::Quad {
                 material: white_light,
             }),
             transform: Transform::new(
-                Mat4::from_translation(Vec3::new(0.0, 0.5, 1.99998))
-                    * Mat4::from_scale(Vec3::new(0.5, 0.5, 0.00001)),
+                Mat4::from_translation(Vec3::new(0.0, 0.0, 1.99998))
+                    * Mat4::from_rotation_z(TAU),
             ),
         },
     ];
     (camera, light, shapes)
 }
 
-pub fn make_axes_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
+pub fn make_axes_scene() -> (Camera, Vec<LightSource>, Vec<Shape>) {
     let camera = Camera::new(
         Vec3::new(1.5, 4.0, 1.35),
         Vec3::new(0.5, 0.0, 0.0),
         Vec3::new(0.0, 0.0, 1.0),
         1.1,
     );
-    let light = vec![Light {
+    let light = vec![LightSource::Point {
         position: Vec3::new(2.0, 4.0, 3.0),
         color: Vec3::new(1.0, 1.0, 1.0),
     }];

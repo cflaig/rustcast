@@ -1,6 +1,6 @@
 use crate::camera::Camera;
 use crate::shape::Shape;
-use crate::types::{Hit, Light, Ray, find_first_hit};
+use crate::types::{Hit, Ray, find_first_hit, LightSource};
 use glam::Vec3;
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
@@ -28,7 +28,7 @@ pub struct Renderer {
     height: usize,
     render_mode: RenderMode,
     camera: Camera,
-    light: Vec<Light>,
+    light: Vec<LightSource>,
     shapes: Vec<Shape>,
 }
 
@@ -38,7 +38,7 @@ impl Renderer {
         height: usize,
         render_mode: RenderMode,
         camera: Camera,
-        light: Vec<Light>,
+        light: Vec<LightSource>,
         shapes: Vec<Shape>,
     ) -> Self {
         let frame_buffer = vec![
@@ -85,10 +85,10 @@ impl Renderer {
                             RenderMode::Normals => render_normals(best_hit),
                             RenderMode::Raycast => raycast(&self.camera, &ray, best_hit),
                             RenderMode::Raytrace => {
-                                raytrace(&self.light, &self.shapes, &ray, best_hit)
+                                raytrace(&self.light, &self.shapes, &ray, best_hit, &mut rng)
                             }
                             RenderMode::Pathtracing => {
-                                pathtrace(&self.shapes, &ray, best_hit, &mut rng)
+                                pathtrace(&self.light, &self.shapes, &ray, best_hit, &mut rng)
                             }
                         };
                     }
@@ -119,7 +119,7 @@ fn raycast(camera: &Camera, ray: &Ray, best_hit: Option<Hit>) -> Vec3 {
     })
 }
 
-fn raytrace(light: &Vec<Light>, shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>) -> Vec3 {
+fn raytrace(light: &Vec<LightSource>, shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>, rng: &mut SmallRng) -> Vec3 {
     const ORIGIN_BIAS: f32 = 1e-4;
     const BLACK: Vec3 = Vec3::new(0.0, 0.0, 0.0);
 
@@ -129,47 +129,66 @@ fn raytrace(light: &Vec<Light>, shapes: &Vec<Shape>, ray: &Ray, best_hit: Option
                 .iter()
                 .map(|l| {
                     let mut p = hit.point(&ray) + hit.normal * ORIGIN_BIAS;
-                    let distance = (p - l.position).length();
+                    let (light_point, light_normal, light_color, _) = l.sample(rng);
+                    let distance = (p - light_point).length();
                     let light_ray = Ray {
                         origin: p,
-                        direction: (l.position - p) / distance,
+                        direction: (light_point - p) / distance,
                     };
 
                     find_first_hit(shapes.iter().map(|s| s.intersect(&light_ray)))
                         .filter(|h| h.t > ORIGIN_BIAS && h.t < distance - ORIGIN_BIAS)
                         .map_or_else(
                             || {
-                                let light = light_ray.direction.dot(hit.normal).max(0.0) * l.color;
+                                let light = light_ray.direction.dot(hit.normal).max(0.0) * light_color;
                                 (1.0 - hit.material.ambient) * light * hit.material.color
                             },
                             |_| BLACK,
                         )
                 })
-                .reduce(|a, b| a + b)
-                .unwrap_or(BLACK)
+                .fold(Vec3::ZERO, |a, b| a + b)
     })
 }
 
-fn pathtrace(shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>, rng: &mut SmallRng) -> Vec3 {
+fn pathtrace(lights: &Vec<LightSource>, shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>, rng: &mut SmallRng) -> Vec3 {
     best_hit.map_or(Vec3::new(0.0, 0.0, 0.0), |hit| {
         let mut ray_light = Vec3::new(1.0, 1.0, 1.0);
         let mut incoming_light = Vec3::new(0.0, 0.0, 0.0);
         let mut cur_hit = hit;
         let mut cur_ray = *ray;
         for _ in 0..5 {
-            let mut new_d = sample_random_on_sphere(rng);
-            let cos_n_d = new_d.dot(cur_hit.normal);
-            if cos_n_d < 0.0 {
-                new_d -= 2.0 * cos_n_d * cur_hit.normal; //new_d.reflect(h.normal)
+            let new_origin = cur_hit.point(&cur_ray) + cur_hit.normal * 0.001;
+
+            for l in lights.iter() {
+                let (light_point, light_normal, light_color, _) = l.sample(rng);
+                let distance = (new_origin - light_point).length();
+                let light_ray = Ray {
+                    origin: new_origin,
+                    direction: (light_point - new_origin) / distance,
+                };
+                find_first_hit(shapes.iter().map(|s| s.intersect(&light_ray)))
+                    .filter(|h| h.t > 0.0001 && h.t < distance - 0.001)
+                    .map_or_else(
+                        || {
+                            let light = light_ray.direction.dot(cur_hit.normal).max(0.0) * light_ray.direction.dot(-light_normal).max(0.0) * light_color;
+                            incoming_light += ray_light * light * cur_hit.material.color;
+                        },
+                        |_| {}
+                    );
             }
 
             if cur_hit.material.ambient > 0.0 {
                 incoming_light += ray_light * cur_hit.material.ambient * cur_hit.material.color;
                 break;
             }
+
+            let mut new_d = sample_random_on_sphere(rng);
+            let cos_n_d = new_d.dot(cur_hit.normal);
+            if cos_n_d < 0.0 {
+                new_d -= 2.0 * cos_n_d * cur_hit.normal; //new_d.reflect(h.normal)
+            }
             ray_light *= cur_hit.material.color * new_d.dot(cur_hit.normal) * 2.0;
 
-            let new_origin = cur_hit.point(&cur_ray) + cur_hit.normal * 0.001;
             cur_ray = Ray {
                 origin: new_origin,
                 direction: new_d,

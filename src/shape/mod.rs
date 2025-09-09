@@ -23,6 +23,9 @@ pub enum Shape {
     Cone {
         material: Material,
     },
+    Quad {
+        material: Material,
+    },
     TransformedShape {
         shape: Box<Shape>,
         transform: Transform,
@@ -136,6 +139,19 @@ impl Shape {
                 intersect_cap_with_radius_one(ray, 0.0, Vec3::new(0.0, 0.0, -1.0), material),
                 intersect_cone_infinite(ray, material).filter(test_if_hits_between_0_1(ray)),
             ]),
+            Shape::Quad { material } => {
+                let t = -ray.origin.z/ray.direction.z;
+                if t > 0.0 {
+                    let p = ray.origin + t*ray.direction;
+                    if p.x > -0.5 && p.x < 0.5 && p.y > -0.5 && p.y < 0.5 {
+                        Some(Hit::new(t, Vec3::new(0.0,0.0,1.0), *material))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            }
         }
     }
 }
