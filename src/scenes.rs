@@ -183,7 +183,7 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         specular_coef: 0.0,
     };
 
-    let blue = Material {
+    let _blue = Material {
         color: Vec3::new(0.1, 0.1, 0.9),
         ambient: 0.0,
         reflection: 0.0,

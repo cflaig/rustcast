@@ -128,7 +128,7 @@ fn raytrace(light: &Vec<Light>, shapes: &Vec<Shape>, ray: &Ray, best_hit: Option
             + light
                 .iter()
                 .map(|l| {
-                    let mut p = hit.point(&ray) + hit.normal * ORIGIN_BIAS;
+                    let p = hit.point(&ray) + hit.normal * ORIGIN_BIAS;
                     let distance = (p - l.position).length();
                     let light_ray = Ray {
                         origin: p,

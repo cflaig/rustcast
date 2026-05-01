@@ -8,7 +8,7 @@ use std::time::Duration;
 use rustcast::renderer::RenderMode::Raycast;
 use eframe::egui::{Context, Ui, Vec2};
 use eframe::{Frame, egui};
-use glam::{Vec3, Vec4};
+use glam::{Vec3};
 use strum::IntoEnumIterator;
 
 struct App {
@@ -67,10 +67,10 @@ impl eframe::App for App {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             let size = get_max_quadratic_size(ui);
-            if (size.x as usize != self.last_size[0]
+            if size.x as usize != self.last_size[0]
                 || size.y as usize != self.last_size[1]
                 || self.render_mode != self.last_mode
-                || self.scene != self.last_scene)
+                || self.scene != self.last_scene
             {
                 let (camera, lights, shapes) = load_scene(self.scene as u8);
                 self.last_size = [size.x as usize, size.y as usize];
@@ -130,7 +130,7 @@ fn load_scene(scene: u8) -> (Camera, Vec<Light>, Vec<Shape>) {
     }
 }
 
-fn render(size: [usize; 2], samples: u32, renderer: &mut Renderer) -> Vec<u8> {
+fn render(_size: [usize; 2], _samples: u32, renderer: &mut Renderer) -> Vec<u8> {
     let frame_buffer = renderer.render();
 
     let inv_gamma = 1.0 / 2.2;
