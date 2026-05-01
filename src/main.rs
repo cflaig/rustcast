@@ -90,6 +90,7 @@ impl eframe::App for App {
             let mut pixels = render(
                 [size.x as usize, size.y as usize],
                 self.samples,
+                self.render_mode,
                 &mut self.renderer,
             );
 
@@ -130,9 +131,16 @@ fn load_scene(scene: u8) -> (Camera, Vec<Light>, Vec<Shape>) {
     }
 }
 
-fn render(_size: [usize; 2], _samples: u32, renderer: &mut Renderer) -> Vec<u8> {
+fn render(_size: [usize; 2], _samples: u32, render_mode: RenderMode, renderer: &mut Renderer) -> Vec<u8> {
     let frame_buffer = renderer.render();
 
+    match render_mode {
+        RenderMode::Pathtracing => tone_mapping(&frame_buffer),
+        _ => simple_tone_mapping(&frame_buffer),
+    }
+}
+
+fn tone_mapping(frame_buffer: &Vec<Vec3>) -> Vec<u8> {
     let inv_gamma = 1.0 / 2.2;
     let exposure_inv = compute_exposure_inv(&frame_buffer);
 
@@ -142,6 +150,23 @@ fn render(_size: [usize; 2], _samples: u32, renderer: &mut Renderer) -> Vec<u8> 
             (x / (exposure_inv + x))
                 .clamp(Vec3::ZERO, Vec3::ONE)
                 .powf(inv_gamma)
+        })
+        .flat_map(|v3| v3.extend(1.0).to_array())
+        .map(|v4| (v4 * 255.0) as u8)
+        .collect::<Vec<u8>>()
+}
+
+fn simple_tone_mapping(frame_buffer: &Vec<Vec3>) -> Vec<u8> {
+    let max = frame_buffer.iter()
+        .flat_map(|v| v.to_array())
+        .reduce(f32::max)
+        .unwrap_or(0.01);
+
+    frame_buffer
+        .iter()
+        .map(|x| {
+            (x / max)
+                .clamp(Vec3::ZERO, Vec3::ONE)
         })
         .flat_map(|v3| v3.extend(1.0).to_array())
         .map(|v4| (v4 * 255.0) as u8)
