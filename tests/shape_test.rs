@@ -10,6 +10,7 @@ fn test_square_intersection() {
         reflection: 0.0,
         shininess: 0.0,
         specular_coef: 0.0,
+        emission: 0.0,
     };
     let square = Shape::Square { material };
 

@@ -14,10 +14,13 @@ pub struct Ray {
 #[derive(Copy, Clone, Debug)]
 pub struct Material {
     pub color: Vec3,
-    pub ambient: f32,
     pub reflection: f32,
     pub shininess: f32,
     pub specular_coef: f32,
+    // path tracer
+    pub emission: f32,
+    // ray tracer
+    pub ambient: f32,
 }
 
 #[derive(Copy, Clone, Debug)]

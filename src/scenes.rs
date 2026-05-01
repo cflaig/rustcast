@@ -24,6 +24,7 @@ pub fn make_default_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         reflection: 0.0,
         shininess: 0.0,
         specular_coef: 0.0,
+        emission: 0.3,
     };
 
     let red = Material {
@@ -32,6 +33,7 @@ pub fn make_default_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         reflection: 0.0,
         shininess: 0.0,
         specular_coef: 0.0,
+        emission: 0.3,
     };
 
     let shapes: Vec<Shape> = vec![
@@ -64,6 +66,7 @@ pub fn make_scene_with_eight_boxes() -> (Camera, Vec<Light>, Vec<Shape>) {
         reflection: 0.0,
         shininess: 0.0,
         specular_coef: 0.0,
+        emission: 0.3,
     };
     let red = Material {
         color: Vec3::new(1.0, 0.0, 0.0),
@@ -71,6 +74,7 @@ pub fn make_scene_with_eight_boxes() -> (Camera, Vec<Light>, Vec<Shape>) {
         reflection: 0.0,
         shininess: 0.0,
         specular_coef: 0.0,
+        emission: 0.3,
     };
 
     let mut shapes: Vec<Shape> = vec![Shape::Plane {
@@ -111,6 +115,7 @@ pub fn make_scene_cylinder_plane() -> (Camera, Vec<Light>, Vec<Shape>) {
         reflection: 0.0,
         shininess: 0.0,
         specular_coef: 0.0,
+        emission: 0.3,
     };
 
     let red = Material {
@@ -119,6 +124,7 @@ pub fn make_scene_cylinder_plane() -> (Camera, Vec<Light>, Vec<Shape>) {
         reflection: 0.0,
         shininess: 0.0,
         specular_coef: 0.0,
+        emission: 0.3,
     };
 
     let shapes: Vec<Shape> = vec![
@@ -160,6 +166,7 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         reflection: 0.0,
         shininess: 0.0,
         specular_coef: 0.0,
+        emission: 0.0,
     };
     let white_light = Material {
         color: Vec3::splat(0.9),
@@ -167,6 +174,7 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         reflection: 0.0,
         shininess: 0.0,
         specular_coef: 0.0,
+        emission: 1.0,
     };
     let red = Material {
         color: Vec3::new(0.9, 0.1, 0.1),
@@ -174,6 +182,7 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         reflection: 0.0,
         shininess: 0.0,
         specular_coef: 0.0,
+        emission: 0.0,
     };
     let green = Material {
         color: Vec3::new(0.1, 0.9, 0.1),
@@ -181,6 +190,7 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         reflection: 0.0,
         shininess: 0.0,
         specular_coef: 0.0,
+        emission: 0.0,
     };
 
     let _blue = Material {
@@ -189,6 +199,7 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         reflection: 0.0,
         shininess: 0.0,
         specular_coef: 0.0,
+        emission: 0.0,
     };
 
     let shapes: Vec<Shape> = vec![
@@ -275,6 +286,7 @@ pub fn make_axes_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         reflection: 0.0,
         shininess: 0.0,
         specular_coef: 0.0,
+        emission: 0.3,
     };
     let green = Material {
         color: Vec3::new(0.0, 1.0, 0.0),
@@ -282,6 +294,7 @@ pub fn make_axes_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         reflection: 0.0,
         shininess: 0.0,
         specular_coef: 0.0,
+        emission: 0.3,
     };
     let blue = Material {
         color: Vec3::new(0.0, 0.0, 1.0),
@@ -289,6 +302,7 @@ pub fn make_axes_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         reflection: 0.0,
         shininess: 0.0,
         specular_coef: 0.0,
+        emission: 0.3,
     };
     let white = Material {
         color: Vec3::splat(0.9),
@@ -296,6 +310,7 @@ pub fn make_axes_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         reflection: 0.0,
         shininess: 0.0,
         specular_coef: 0.0,
+        emission: 0.0,
     };
 
     let shaft_r = 0.05f32;

@@ -163,8 +163,8 @@ fn pathtrace(shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>, rng: &mut Sm
                 new_d -= 2.0 * cos_n_d * cur_hit.normal; //new_d.reflect(h.normal)
             }
 
-            if cur_hit.material.ambient > 0.0 {
-                incoming_light += ray_light * cur_hit.material.ambient * cur_hit.material.color;
+            if cur_hit.material.emission > 0.0 {
+                incoming_light += ray_light * cur_hit.material.emission * cur_hit.material.color;
                 break;
             }
             ray_light *= cur_hit.material.color * new_d.dot(cur_hit.normal) * 2.0;
