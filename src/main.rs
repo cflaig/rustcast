@@ -1,17 +1,11 @@
-mod camera;
-mod renderer;
-mod scenes;
-mod shape;
-mod types;
+use rustcast::camera::Camera;
+use rustcast::renderer::{RenderMode, Renderer};
+use rustcast::scenes::{make_axes_scene, make_cornell_scene, make_default_scene, make_scene_cylinder_plane};
+use rustcast::shape::Shape;
+use rustcast::types::Light;
 
-use camera::Camera;
-use renderer::{RenderMode, Renderer};
-use scenes::{make_axes_scene, make_cornell_scene, make_default_scene, make_scene_cylinder_plane};
-use shape::Shape;
 use std::time::Duration;
-use types::Light;
-
-use crate::renderer::RenderMode::Raycast;
+use rustcast::renderer::RenderMode::Raycast;
 use eframe::egui::{Context, Ui, Vec2};
 use eframe::{Frame, egui};
 use glam::{Vec3, Vec4};
