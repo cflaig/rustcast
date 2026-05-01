@@ -1,5 +1,4 @@
 use glam::Vec3;
-use std::array::IntoIter;
 
 use crate::types::{Hit, Material, Ray, Transform, Transformable, find_first_hit};
 
@@ -27,6 +26,9 @@ pub enum Shape {
         shape: Box<Shape>,
         transform: Transform,
     },
+    Square {
+        material: Material,
+    }
 }
 
 impl Shape {
@@ -136,6 +138,21 @@ impl Shape {
                 intersect_cap_with_radius_one(ray, 0.0, Vec3::new(0.0, 0.0, -1.0), material),
                 intersect_cone_infinite(ray, material).filter(test_if_hits_between_0_1(ray)),
             ]),
+            Shape::Square { material } => {
+                if ray.direction.z.abs() < f32::EPSILON {
+                    None
+                } else {
+                    let t = -ray.origin.z/ray.direction.z;
+                    let x = ray.origin.x + t*ray.direction.x;
+                    let y = ray.origin.y + t*ray.direction.y;
+                    if t > 0.0 && (-0.5f32..=0.5).contains(&x) && (-0.5f32..=0.5).contains(&y)  {
+                        Some(Hit::new(t, Vec3::new(0.0, 0.0, 1.0), *material))
+                    } else {
+                        None
+                    }
+
+                }
+            },
         }
     }
 }
