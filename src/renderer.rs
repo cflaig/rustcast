@@ -114,8 +114,10 @@ fn raycast(camera: &Camera, ray: &Ray, best_hit: Option<Hit>) -> Vec3 {
     best_hit.map_or(Vec3::new(0.0, 0.0, 0.0), |hit| {
         let l = (camera.pos - hit.point(&ray)).normalize();
         let brightness = l.dot(hit.normal).max(0.0);
-        hit.material.ambient * hit.material.color
-            + (1.0 - hit.material.ambient) * brightness * hit.material.color
+        let texture = hit.texture;
+        let material = texture.material_at(&hit, &ray);
+        material.ambient * material.color
+            + (1.0 - material.ambient) * brightness * material.color
     })
 }
 
@@ -124,7 +126,9 @@ fn raytrace(light: &Vec<Light>, shapes: &Vec<Shape>, ray: &Ray, best_hit: Option
     const BLACK: Vec3 = Vec3::new(0.0, 0.0, 0.0);
 
     best_hit.map_or(Vec3::new(0.0, 0.0, 0.0), |hit| {
-        hit.material.ambient * hit.material.color
+        let texture = hit.texture;
+        let material = texture.material_at(&hit, &ray);
+        material.ambient * material.color
             + light
                 .iter()
                 .map(|l| {
@@ -140,7 +144,7 @@ fn raytrace(light: &Vec<Light>, shapes: &Vec<Shape>, ray: &Ray, best_hit: Option
                         .map_or_else(
                             || {
                                 let light = light_ray.direction.dot(hit.normal).max(0.0) * l.color;
-                                (1.0 - hit.material.ambient) * light * hit.material.color
+                                (1.0 - material.ambient) * light * material.color
                             },
                             |_| BLACK,
                         )
@@ -163,11 +167,12 @@ fn pathtrace(shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>, rng: &mut Sm
                 new_d -= 2.0 * cos_n_d * cur_hit.normal; //new_d.reflect(h.normal)
             }
 
-            if cur_hit.material.emission > 0.0 {
-                incoming_light += ray_light * cur_hit.material.emission * cur_hit.material.color;
+            let material = cur_hit.texture.material_at(&cur_hit, &cur_ray);
+            if material.emission > 0.0 {
+                incoming_light += ray_light * material.emission * material.color;
                 break;
             }
-            ray_light *= cur_hit.material.color * new_d.dot(cur_hit.normal) * 2.0;
+            ray_light *= material.color * new_d.dot(cur_hit.normal) * 2.0;
 
             let new_origin = cur_hit.point(&cur_ray) + cur_hit.normal * 0.001;
             cur_ray = Ray {

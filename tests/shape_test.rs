@@ -1,4 +1,4 @@
-use rustcast::types::{Ray, Material};
+use rustcast::types::{Ray, Material, Texture};
 use rustcast::shape::Shape;
 use glam::Vec3;
 
@@ -12,7 +12,7 @@ fn test_square_intersection() {
         specular_coef: 0.0,
         emission: 0.0,
     };
-    let square = Shape::Square { material };
+    let square = Shape::Square { texture: Texture::Constant(material) };
 
     // Ray hitting the square from the front (positive Z)
     let ray1 = Ray {

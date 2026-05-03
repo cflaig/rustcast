@@ -1,33 +1,33 @@
-use glam::Vec3;
+use glam::{Vec2, Vec3};
 
-use crate::types::{Hit, Material, Ray, Transform, Transformable, find_first_hit};
+use crate::types::{Hit, Ray, Texture, Transform, Transformable, find_first_hit};
 
 pub enum Shape {
     UnitBox {
-        material: Material,
+        texture: Texture,
     },
     Sphere {
         center: Vec3,
         radius: f32,
-        material: Material,
+        texture: Texture,
     },
     Plane {
         normal: Vec3,
         d: f32,
-        material: Material,
+        texture: Texture,
     },
     Cylinder {
-        material: Material,
+        texture: Texture,
     },
     Cone {
-        material: Material,
+        texture: Texture,
     },
     TransformedShape {
         shape: Box<Shape>,
         transform: Transform,
     },
     Square {
-        material: Material,
+        texture: Texture,
     }
 }
 
@@ -40,7 +40,7 @@ impl Shape {
                     .intersect(&transformed_ray)
                     .map(|hit| hit.to_global_coordinates(transform))
             }
-            Shape::UnitBox { material } => {
+            Shape::UnitBox { texture } => {
                 let mut min = f32::MAX;
                 let mut max = f32::MIN;
                 let mut min_pos = 0;
@@ -80,14 +80,14 @@ impl Shape {
                         let p = ray.origin + ray.direction * t;
                         let mut n = Vec3::new(0.0, 0.0, 0.0);
                         n[pos] = 1.0f32 * p[pos].signum();
-                        Some(Hit::new(t, n, *material))
+                        Some(Hit::new(t, n, Vec2::ZERO, *texture))
                     }
                 } else {
                     None
                 }
             }
             Shape::Sphere {
-                material,
+                texture,
                 center,
                 radius,
             } => {
@@ -106,7 +106,7 @@ impl Shape {
                     if t > 0.0 {
                         let p = ray.origin + ray.direction * t;
                         let n = (p - center).normalize();
-                        Some(Hit::new(t, n, *material))
+                        Some(Hit::new(t, n, Vec2::ZERO, *texture))
                     } else {
                         None
                     }
@@ -115,7 +115,7 @@ impl Shape {
             Shape::Plane {
                 normal,
                 d,
-                material,
+                texture,
             } => {
                 let cos = normal.dot(ray.direction);
                 if cos.abs() < f32::EPSILON {
@@ -125,20 +125,20 @@ impl Shape {
                     if t < 0.0 {
                         None
                     } else {
-                        Some(Hit::new(t, normal.normalize(), *material))
+                        Some(Hit::new(t, normal.normalize(), Vec2::ZERO, *texture))
                     }
                 }
             }
-            Shape::Cylinder { material } => find_first_hit([
-                intersect_cap_with_radius_one(ray, 1.0, Vec3::new(0.0, 0.0, 1.0), material),
-                intersect_cap_with_radius_one(ray, 0.0, Vec3::new(0.0, 0.0, -1.0), material),
-                intersect_cylinder_infinite(ray, material).filter(test_if_hits_between_0_1(ray)),
+            Shape::Cylinder { texture } => find_first_hit([
+                intersect_cap_with_radius_one(ray, 1.0, Vec3::new(0.0, 0.0, 1.0), texture),
+                intersect_cap_with_radius_one(ray, 0.0, Vec3::new(0.0, 0.0, -1.0), texture),
+                intersect_cylinder_infinite(ray, texture).filter(test_if_hits_between_0_1(ray)),
             ]),
-            Shape::Cone { material } => find_first_hit([
-                intersect_cap_with_radius_one(ray, 0.0, Vec3::new(0.0, 0.0, -1.0), material),
-                intersect_cone_infinite(ray, material).filter(test_if_hits_between_0_1(ray)),
+            Shape::Cone { texture } => find_first_hit([
+                intersect_cap_with_radius_one(ray, 0.0, Vec3::new(0.0, 0.0, -1.0), texture),
+                intersect_cone_infinite(ray, texture).filter(test_if_hits_between_0_1(ray)),
             ]),
-            Shape::Square { material } => {
+            Shape::Square { texture } => {
                 if ray.direction.z.abs() < f32::EPSILON {
                     None
                 } else {
@@ -146,7 +146,7 @@ impl Shape {
                     let x = ray.origin.x + t*ray.direction.x;
                     let y = ray.origin.y + t*ray.direction.y;
                     if t > 0.0 && (-0.5f32..=0.5).contains(&x) && (-0.5f32..=0.5).contains(&y)  {
-                        Some(Hit::new(t, Vec3::new(0.0, 0.0, 1.0), *material))
+                        Some(Hit::new(t, Vec3::new(0.0, 0.0, 1.0), Vec2::ZERO, *texture))
                     } else {
                         None
                     }
@@ -161,12 +161,12 @@ fn intersect_cap_with_radius_one(
     ray: &Ray,
     cap_z_plane: f32,
     hit_normal: Vec3,
-    material: &Material,
+    texture: &Texture,
 ) -> Option<Hit> {
     let t = (cap_z_plane - ray.origin.z) / ray.direction.z;
     let p = ray.origin + ray.direction * t;
     if t > 0.0 && (p.y * p.y + p.x * p.x) < 1.0 {
-        Some(Hit::new(t, hit_normal, *material))
+        Some(Hit::new(t, hit_normal, Vec2::ZERO, *texture))
     } else {
         None
     }
@@ -189,18 +189,18 @@ fn solve_quadratic(a: f32, b: f32, c: f32) -> Option<f32> {
     }
 }
 
-fn intersect_cylinder_infinite(ray: &Ray, material: &Material) -> Option<Hit> {
+fn intersect_cylinder_infinite(ray: &Ray, texture: &Texture) -> Option<Hit> {
     let a = ray.direction.x * ray.direction.x + ray.direction.y * ray.direction.y;
     let b = 2f32 * (ray.direction.x * ray.origin.x + ray.direction.y * ray.origin.y);
     let c = ray.origin.x * ray.origin.x + ray.origin.y * ray.origin.y - 1.0;
     solve_quadratic(a, b, c).map(|t| {
         let p = ray.origin + ray.direction * t;
-        Hit::new(t, Vec3::new(p.x, p.y, 0.0), *material)
+        Hit::new(t, Vec3::new(p.x, p.y, 0.0), Vec2::ZERO, *texture)
     })
 }
 
 #[allow(dead_code)]
-fn intersect_cone_infinite_quadratic(ray: &Ray, material: Material) -> Option<Hit> {
+fn intersect_cone_infinite_quadratic(ray: &Ray, texture: Texture) -> Option<Hit> {
     let a = ray.direction.x * ray.direction.x + ray.direction.y * ray.direction.y;
     let b =
         2f32 * (ray.direction.x * ray.origin.x + ray.direction.y * ray.origin.y) + ray.direction.z;
@@ -210,12 +210,13 @@ fn intersect_cone_infinite_quadratic(ray: &Ray, material: Material) -> Option<Hi
         Hit::new(
             t,
             Vec3::new(2.0 * p.x, 2.0 * p.y, p.z).normalize(),
-            material,
+            Vec2::ZERO,
+            texture,
         )
     })
 }
 
-fn intersect_cone_infinite(ray: &Ray, material: &Material) -> Option<Hit> {
+fn intersect_cone_infinite(ray: &Ray, texture: &Texture) -> Option<Hit> {
     let a = ray.direction.x * ray.direction.x + ray.direction.y * ray.direction.y
         - ray.direction.z * ray.direction.z;
     let b = 2f32
@@ -226,7 +227,7 @@ fn intersect_cone_infinite(ray: &Ray, material: &Material) -> Option<Hit> {
         - (1.0 - ray.origin.z) * (1.0 - ray.origin.z);
     solve_quadratic(a, b, c).map(|t| {
         let p = ray.origin + ray.direction * t;
-        Hit::new(t, Vec3::new(p.x, p.y, 1.0 - p.z).normalize(), *material)
+        Hit::new(t, Vec3::new(p.x, p.y, 1.0 - p.z).normalize(), Vec2::ZERO, *texture)
     })
 }
 

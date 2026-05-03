@@ -3,7 +3,7 @@ use std::f32::consts::{PI};
 
 use crate::camera::Camera;
 use crate::shape::Shape;
-use crate::types::{Light, Material, Transform};
+use crate::types::{Light, Material, Texture, Transform};
 
 // Scene builders
 pub fn make_default_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
@@ -37,11 +37,11 @@ pub fn make_default_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
     };
 
     let shapes: Vec<Shape> = vec![
-        Shape::Cone { material: red },
+        Shape::Cone { texture: Texture::Constant(red) },
         Shape::Plane {
             normal: Vec3::new(0.0, 0.0, 1.0),
             d: -2.0,
-            material: blue,
+            texture: Texture::Constant(blue),
         },
     ];
     (camera, light, shapes)
@@ -80,7 +80,7 @@ pub fn make_scene_with_eight_boxes() -> (Camera, Vec<Light>, Vec<Shape>) {
     let mut shapes: Vec<Shape> = vec![Shape::Plane {
         normal: Vec3::new(0.0, 0.0, 1.0),
         d: -2.0,
-        material: blue,
+        texture: Texture::Constant(blue),
     }];
 
     for i in 0..8 {
@@ -89,7 +89,7 @@ pub fn make_scene_with_eight_boxes() -> (Camera, Vec<Light>, Vec<Shape>) {
         let transform = Transform::new(matrix);
 
         shapes.push(Shape::TransformedShape {
-            shape: Box::new(Shape::UnitBox { material: red }),
+            shape: Box::new(Shape::UnitBox { texture: Texture::Constant(red) }),
             transform,
         });
     }
@@ -128,11 +128,11 @@ pub fn make_scene_cylinder_plane() -> (Camera, Vec<Light>, Vec<Shape>) {
     };
 
     let shapes: Vec<Shape> = vec![
-        Shape::Cone { material: red },
+        Shape::Cone { texture: Texture::Constant(red) },
         Shape::Plane {
             normal: Vec3::new(0.0, 0.0, 1.0),
             d: -2.0,
-            material: blue,
+            texture: Texture::Constant(blue),
         },
     ];
     (camera, light, shapes)
@@ -168,6 +168,10 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         specular_coef: 0.0,
         emission: 0.0,
     };
+    let light_gray = Material {
+        color: Vec3::splat(0.6),
+        ..white
+    };
     let white_light = Material {
         color: Vec3::splat(0.9),
         ambient: 1.0,
@@ -184,6 +188,10 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         specular_coef: 0.0,
         emission: 0.0,
     };
+    let gray_red = Material {
+        color: Vec3::new(0.7, 0.2, 0.2),
+        ..red
+    };
     let green = Material {
         color: Vec3::new(0.1, 0.9, 0.1),
         ambient: 0.0,
@@ -191,6 +199,10 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         shininess: 0.0,
         specular_coef: 0.0,
         emission: 0.0,
+    };
+    let gray_green = Material {
+        color: Vec3::new(0.2, 0.7, 0.2),
+        ..green
     };
 
     let _blue = Material {
@@ -206,49 +218,49 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         Shape::Plane {
             normal: Vec3::new(0.0, 0.0, 1.0),
             d: -2.0,
-            material: white,
+            texture: Texture::Brick(white, light_gray),
         },
         Shape::Plane {
             normal: Vec3::new(0.0, 0.0, -1.0),
             d: -2.0,
-            material: white,
+            texture: Texture::Constant(white),
         },
         Shape::Plane {
             normal: Vec3::new(0.0, -1.0, 0.0),
             d: -2.0,
-            material: white,
+            texture: Texture::Constant(white),
         },
         Shape::Plane {
             normal: Vec3::new(1.0, 0.0, 0.0),
             d: -2.0,
-            material: red,
+            texture: Texture::Brick(red, gray_red),
         },
         Shape::Plane {
             normal: Vec3::new(-1.0, 0.0, 0.0),
             d: -2.0,
-            material: green,
+            texture: Texture::Brick(green, gray_green),
         },
         Shape::Sphere {
             center: Vec3::new(-1.2, -0.2, 0.5),
             radius: 0.66666,
-            material: white,
+            texture: Texture::Constant(white),
         },
         Shape::TransformedShape {
-            shape: Box::new(Shape::Cylinder { material: white }),
+            shape: Box::new(Shape::Cylinder { texture: Texture::Constant(white) }),
             transform: Transform::new(
                 Mat4::from_translation(Vec3::new(-1.111, -1.333, -2.0))
                     * Mat4::from_scale(Vec3::new(0.25, 0.25, 1.5)),
             ),
         },
         Shape::TransformedShape {
-            shape: Box::new(Shape::Cone { material: white }),
+            shape: Box::new(Shape::Cone { texture: Texture::Constant(white) }),
             transform: Transform::new(
                 Mat4::from_translation(Vec3::new(1.5, 0.5, -2.0))
                     * Mat4::from_scale(Vec3::new(0.25, 0.25, 1.0)),
             ),
         },
         Shape::TransformedShape {
-            shape: Box::new(Shape::UnitBox { material: white }),
+            shape: Box::new(Shape::UnitBox { texture: Texture::Constant(white) }),
             transform: Transform::new(
                 Mat4::from_translation(Vec3::new(0.0, 0.25, -1.24))
                     * Mat4::from_rotation_z(PI / 6.0)
@@ -257,7 +269,7 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         },
         Shape::TransformedShape {
             shape: Box::new(Shape::Square {
-                material: white_light,
+                texture: Texture::Constant(white_light),
             }),
             transform: Transform::new(
                 Mat4::from_translation(Vec3::new(0.0, 0.5, 1.99998))
@@ -328,39 +340,39 @@ pub fn make_axes_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
     let r_x = Mat4::from_rotation_y(std::f32::consts::FRAC_PI_2);
 
     shapes.push(Shape::TransformedShape {
-        shape: Box::new(Shape::Cylinder { material: red }),
+        shape: Box::new(Shape::Cylinder { texture: Texture::Constant(red) }),
         transform: Transform::new(r_x * s_shaft),
     });
     shapes.push(Shape::TransformedShape {
-        shape: Box::new(Shape::Cone { material: red }),
+        shape: Box::new(Shape::Cone { texture: Texture::Constant(red) }),
         transform: Transform::new(r_x * t_tip * s_tip),
     });
 
     // Y axis (green)
     let r_y = Mat4::from_rotation_x(-std::f32::consts::FRAC_PI_2);
     shapes.push(Shape::TransformedShape {
-        shape: Box::new(Shape::Cylinder { material: green }),
+        shape: Box::new(Shape::Cylinder { texture: Texture::Constant(green) }),
         transform: Transform::new(r_y * s_shaft),
     });
     shapes.push(Shape::TransformedShape {
-        shape: Box::new(Shape::Cone { material: green }),
+        shape: Box::new(Shape::Cone { texture: Texture::Constant(green) }),
         transform: Transform::new(r_y * t_tip * s_tip),
     });
 
     // Z axis (blue)
     shapes.push(Shape::TransformedShape {
-        shape: Box::new(Shape::Cylinder { material: blue }),
+        shape: Box::new(Shape::Cylinder { texture: Texture::Constant(blue) }),
         transform: Transform::new(s_shaft),
     });
     shapes.push(Shape::TransformedShape {
-        shape: Box::new(Shape::Cone { material: blue }),
+        shape: Box::new(Shape::Cone { texture: Texture::Constant(blue) }),
         transform: Transform::new(t_tip * s_tip),
     });
 
     shapes.push(Shape::Plane {
         normal: Vec3::new(0.0, 0.0, 1.0),
         d: -2.0,
-        material: white,
+        texture: Texture::Constant(white),
     });
 
     (camera, light, shapes)

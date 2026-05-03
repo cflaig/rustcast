@@ -1,11 +1,8 @@
 # Next Steps
-* Render-mode dependent color mapping
-  * Extract method 
-  * Path-tracing tone mapping
-  * Ray-tracing simple clamping
-* Material support
+* Add 2d Checkerboard support
 * Add reflection
 * Add refraction
+* Add specular highlights
 * Add area lights
   * Transformation
   * Normal

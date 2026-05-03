@@ -1,4 +1,5 @@
-use glam::{Mat4, Vec3, Vec4};
+use std::ops::Add;
+use glam::{Mat4, Vec2, Vec3, Vec4};
 
 pub trait Transformable {
     fn to_local_coordinates(&self, transform: &Transform) -> Self;
@@ -9,6 +10,29 @@ pub trait Transformable {
 pub struct Ray {
     pub origin: Vec3,
     pub direction: Vec3,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum Texture {
+    Constant(Material),
+    Brick(Material, Material),
+    Checkboard(Material, Material),
+}
+
+impl Texture {
+    pub fn material_at(&self, hitpoint: &Hit, ray: &Ray) -> Material {
+        match self {
+            Texture::Constant(mat) => *mat,
+            Texture::Brick(mat1, mat2) => {
+                if hitpoint.point(ray).add(Vec3::new(0.34243, 0.56789, 0.42345)).floor().dot(Vec3::new(1.0, 1.0, 1.0)) as i32 % 2 != 0
+                { *mat1 }
+                else { *mat2 }
+            },
+            Texture::Checkboard(mat1, _mat2) => {
+                    *mat1
+            }
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -32,15 +56,18 @@ pub struct Light {
 pub struct Hit {
     pub t: f32,
     pub normal: Vec3,
-    pub material: Material,
+    pub uv: Vec2,
+    //pub local_coords: Vec3,
+    pub texture: Texture,
 }
 
 impl Hit {
-    pub fn new(t: f32, normal: Vec3, material: Material) -> Self {
+    pub fn new(t: f32, normal: Vec3, uv: Vec2, texture: Texture) -> Self {
         Hit {
             t,
             normal,
-            material,
+            uv,
+            texture,
         }
     }
     pub fn point(&self, ray: &Ray) -> Vec3 {
@@ -82,7 +109,8 @@ impl Transformable for Hit {
         Hit::new(
             self.t,
             transform.local_normal_to_global(self.normal),
-            self.material,
+            self.uv,
+            self.texture,
         )
     }
 }
