@@ -85,7 +85,7 @@ impl Renderer {
                             RenderMode::Normals => render_normals(best_hit),
                             RenderMode::Raycast => raycast(&self.camera, &ray, best_hit),
                             RenderMode::Raytrace => {
-                                raytrace(&self.light, &self.shapes, &ray, best_hit)
+                                raytrace(&self.light, &self.shapes, &ray, best_hit, 10)
                             }
                             RenderMode::Pathtracing => {
                                 pathtrace(&self.shapes, &ray, best_hit, &mut rng)
@@ -121,13 +121,51 @@ fn raycast(camera: &Camera, ray: &Ray, best_hit: Option<Hit>) -> Vec3 {
     })
 }
 
-fn raytrace(light: &Vec<Light>, shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>) -> Vec3 {
-    const ORIGIN_BIAS: f32 = 1e-4;
+const ORIGIN_BIAS: f32 = 1e-4;
+
+fn raytrace(light: &Vec<Light>, shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>, max_depth: usize) -> Vec3 {
+
     const BLACK: Vec3 = Vec3::new(0.0, 0.0, 0.0);
+    if max_depth == 0 {
+        return BLACK;
+    }
 
     best_hit.map_or(Vec3::new(0.0, 0.0, 0.0), |hit| {
         let texture = hit.texture;
         let material = texture.material_at(&hit, &ray);
+
+        if material.reflection > 0.0 {
+            let reflected_ray = Ray {
+                origin: hit.point(&ray) + hit.normal * ORIGIN_BIAS,
+                direction: ray.direction - 2.0 * ray.direction.dot(hit.normal) * hit.normal //ray.direction.reflect(hit.normal)
+            };
+            let reflected_hit = find_first_hit(shapes.iter().map(|s| s.intersect(&reflected_ray)));
+            return raytrace(light, shapes, &reflected_ray, reflected_hit, max_depth-1);
+        }
+        if material.transparency > 0.0 {
+            let eta = 1.0/material.ior;
+            let offset = if ray.direction.dot(hit.normal) < 0.0 { -ORIGIN_BIAS } else { ORIGIN_BIAS };
+
+           return  match refract_ray(&ray.direction, hit.normal, eta ).map(|r| {
+                let refracted_ray = Ray {
+                    origin: hit.point(&ray) + hit.normal * offset,
+                    direction: r,
+                };
+
+                let refracted_hit = find_first_hit(shapes.iter().map(|s| s.intersect(&refracted_ray)));
+                raytrace(light, shapes, &refracted_ray, refracted_hit, max_depth-1)
+            }) {
+                None => {
+                    let reflected_ray = Ray {
+                        origin: hit.point(&ray) + hit.normal * ORIGIN_BIAS,
+                        direction: ray.direction - 2.0 * ray.direction.dot(hit.normal) * hit.normal //ray.direction.reflect(hit.normal)
+                    };
+                    let reflected_hit = find_first_hit(shapes.iter().map(|s| s.intersect(&reflected_ray)));
+                    raytrace(light, shapes, &reflected_ray, reflected_hit, max_depth-1)
+                },
+                Some(v) => v
+            };
+        }
         material.ambient * material.color
             + light
                 .iter()
@@ -160,24 +198,44 @@ fn pathtrace(shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>, rng: &mut Sm
         let mut incoming_light = Vec3::new(0.0, 0.0, 0.0);
         let mut cur_hit = hit;
         let mut cur_ray = *ray;
-        for _ in 0..5 {
-            let mut new_d = sample_random_on_sphere(rng);
-            let cos_n_d = new_d.dot(cur_hit.normal);
-            if cos_n_d < 0.0 {
-                new_d -= 2.0 * cos_n_d * cur_hit.normal; //new_d.reflect(h.normal)
-            }
+        let mut bias = ORIGIN_BIAS;
+        let mut new_direction;
+        let mut new_origin ;
 
+        for _ in 0..8 {
             let material = cur_hit.texture.material_at(&cur_hit, &cur_ray);
-            if material.emission > 0.0 {
-                incoming_light += ray_light * material.emission * material.color;
-                break;
-            }
-            ray_light *= material.color * new_d.dot(cur_hit.normal) * 2.0;
+            if material.reflection > 0.0 {
+                new_direction = cur_ray.direction - 2.0 * cur_ray.direction.dot(cur_hit.normal) * cur_hit.normal;
+            } else if material.transparency > 0.0 {
+                let eta = 1.0/material.ior;
+                bias = if cur_ray.direction.dot(cur_hit.normal) < 0.0 { -ORIGIN_BIAS } else { ORIGIN_BIAS };
 
-            let new_origin = cur_hit.point(&cur_ray) + cur_hit.normal * 0.001;
+                match refract_ray(&cur_ray.direction, cur_hit.normal, eta ) {
+                    None => {
+                        bias = ORIGIN_BIAS;
+                        new_direction = cur_ray.direction - 2.0 * cur_ray.direction.dot(cur_hit.normal) * cur_hit.normal;
+                    },
+                    Some(v) => {
+                        new_direction = v;
+                    }
+                };
+            } else {
+                new_direction = sample_random_on_sphere(rng);
+                let cos_n_d = new_direction.dot(cur_hit.normal);
+                if cos_n_d < 0.0 {
+                    new_direction -= 2.0 * cos_n_d * cur_hit.normal; //new_d.reflect(h.normal)
+                }
+
+                if material.emission > 0.0 {
+                    incoming_light += ray_light * material.emission * material.color;
+                    break;
+                }
+                ray_light *= material.color * new_direction.dot(cur_hit.normal) * 2.0;
+            }
+            new_origin = cur_hit.point(&cur_ray) + cur_hit.normal * bias;
             cur_ray = Ray {
                 origin: new_origin,
-                direction: new_d,
+                direction: new_direction,
             };
             cur_hit = match find_first_hit(shapes.iter().map(|s| s.intersect(&cur_ray))) {
                 Some(h) => h,
@@ -186,6 +244,21 @@ fn pathtrace(shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>, rng: &mut Sm
         }
         incoming_light
     })
+}
+
+pub fn refract_ray(r: &Vec3, mut n: Vec3, mut eta: f32) -> Option<Vec3> {
+    let mut cos = r.dot(n);
+    if cos > 0.0 {
+        n = -n;
+        eta = 1.0/eta;
+        cos = -cos;
+    }
+    let k = 1.0 - eta * eta * (1.0 - cos * cos);
+    if k <= 0.0 {
+        None
+    } else {
+        Some(eta * r - (eta * cos + f32::sqrt(k))*n)
+    }
 }
 
 pub fn sample_random_on_sphere(rng: &mut SmallRng) -> Vec3 {
