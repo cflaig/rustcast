@@ -1,0 +1,91 @@
+<svg viewBox="0 0 700 500" xmlns="http://www.w3.org/2000/svg" font-family="Georgia, serif">
+  <defs>
+    <marker id="arrowR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="11" orient="auto-start-reverse">
+      <path d="M 0 2 L 10 5 L 0 8 z" fill="#c0392b"/>
+    </marker>
+    <marker id="arrowT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="11" orient="auto-start-reverse">
+      <path d="M 0 2 L 10 5 L 0 8 z" fill="#2980b9"/>
+    </marker>
+    <marker id="arrowN" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="11" orient="auto-start-reverse">
+      <path d="M 0 2 L 10 5 L 0 8 z" fill="#27ae60"/>
+    </marker>
+  </defs>
+
+  <!-- Hintergrund -->
+  <rect width="700" height="500" fill="#fafaf7"/>
+
+  <!-- Nach unten gewölbte Oberfläche, geht durch den Auftreffpunkt P=(350, 230) -->
+  <!-- Parabelförmig, höchster Punkt in der Mitte -->
+  <path d="M 60 360 Q 350 100 640 360" fill="none" stroke="#555" stroke-width="2"/>
+
+  <!-- Beschriftung der Oberfläche -->
+  <text x="90" y="345" font-style="italic" font-size="15" fill="#555">Oberfläche</text>
+
+  <!-- Halbraum-Beschriftung -->
+  <text x="560" y="90" font-size="14" fill="#777" font-style="italic">n₁ (einfallend)</text>
+  <text x="560" y="430" font-size="14" fill="#777" font-style="italic">n₂ (gebrochen)</text>
+
+  <!-- Tangente am Auftreffpunkt P=(350,230): horizontal -->
+  <line x1="160" y1="230" x2="540" y2="230" stroke="#aaa" stroke-width="1" stroke-dasharray="5,4"/>
+  <text x="170" y="223" font-size="13" fill="#888" font-style="italic">Tangente</text>
+
+  <!-- Normale n: senkrecht nach oben vom Auftreffpunkt, Länge 180 -->
+  <line x1="350" y1="230" x2="350" y2="50" stroke="#27ae60" stroke-width="2.2" marker-end="url(#arrowN)"/>
+  <text x="358" y="65" font-size="20" fill="#27ae60" font-weight="bold" font-style="italic">n</text>
+
+  <!-- Einfallender Strahl r: kommt von oben links, ENDET im Auftreffpunkt -->
+  <!-- Einfallswinkel α = 35°. r-Richtung (auf P zu): (sin35, cos35) ≈ (0.574, 0.819) -->
+  <!-- Länge 180. Start = P - 180*r_dir = (350-103.2, 230-147.4) = (246.8, 82.6) -->
+  <line x1="246.8" y1="82.6" x2="350" y2="230" stroke="#c0392b" stroke-width="2.5" marker-end="url(#arrowR)"/>
+  <text x="218" y="80" font-size="20" fill="#c0392b" font-weight="bold" font-style="italic">r</text>
+
+  <!-- r_parallel: parallel zur Tangente, ENDET in P. -->
+  <!-- Länge = 180*sin35 ≈ 103.2. Endpunkt = P, also Start = (350-103.2, 230) = (246.8, 230) -->
+  <line x1="246.8" y1="230" x2="350" y2="230" stroke="#c0392b" stroke-width="1.8" stroke-dasharray="6,3" marker-end="url(#arrowR)"/>
+  <text x="280" y="248" font-size="15" fill="#c0392b" font-style="italic">r∥</text>
+
+  <!-- r_perp: parallel zur Normalen, ENDET in P. -->
+  <!-- Länge = 180*cos35 ≈ 147.4. Endpunkt = P, also Start = (350, 230-147.4) = (350, 82.6) -->
+  <line x1="350" y1="82.6" x2="350" y2="230" stroke="#c0392b" stroke-width="1.8" stroke-dasharray="6,3" marker-end="url(#arrowR)"/>
+  <text x="358" y="160" font-size="15" fill="#c0392b" font-style="italic">r⊥</text>
+
+  <!-- Hilfslinie für Parallelogramm (vom Start von r zum Start von r_perp horizontal) -->
+  <line x1="246.8" y1="82.6" x2="350" y2="82.6" stroke="#bbb" stroke-width="0.8" stroke-dasharray="3,3"/>
+  <line x1="246.8" y1="82.6" x2="246.8" y2="230" stroke="#bbb" stroke-width="0.8" stroke-dasharray="3,3"/>
+
+  <!-- Gebrochener Strahl t: vom Auftreffpunkt nach unten rechts. -->
+  <!-- Brechungswinkel β ≈ 22°. t-Richtung: (sin22, cos22) ≈ (0.375, 0.927). Länge 180 -->
+  <!-- Endpunkt = (350+67.5, 230+166.9) = (417.5, 396.9) -->
+  <line x1="350" y1="230" x2="417.5" y2="396.9" stroke="#2980b9" stroke-width="2.5" marker-end="url(#arrowT)"/>
+  <text x="425" y="410" font-size="20" fill="#2980b9" font-weight="bold" font-style="italic">t</text>
+
+  <!-- t_par: parallel zur Tangente, vom Auftreffpunkt aus (Komponente von t, beginnt in P) -->
+  <line x1="350" y1="230" x2="417.5" y2="230" stroke="#2980b9" stroke-width="1.8" stroke-dasharray="6,3" marker-end="url(#arrowT)"/>
+  <text x="372" y="223" font-size="15" fill="#2980b9" font-style="italic">t∥</text>
+
+  <!-- t_perp: parallel zur Normalen, nach unten -->
+  <line x1="417.5" y1="230" x2="417.5" y2="396.9" stroke="#2980b9" stroke-width="1.8" stroke-dasharray="6,3" marker-end="url(#arrowT)"/>
+  <text x="425" y="315" font-size="15" fill="#2980b9" font-style="italic">t⊥</text>
+
+  <!-- Einfallswinkel α: zwischen Normale (oben) und einfallendem Strahl (zurück nach oben links) -->
+  <path d="M 350 180 A 50 50 0 0 0 321.3 189.0" fill="none" stroke="#1a1a1a" stroke-width="1.2"/>
+  <text x="318" y="178" font-size="16" font-style="italic" fill="#1a1a1a">α</text>
+
+  <!-- Brechungswinkel β: zwischen -n (nach unten) und t -->
+  <path d="M 350 280 A 50 50 0 0 0 368.7 276.4" fill="none" stroke="#1a1a1a" stroke-width="1.2"/>
+  <text x="355" y="300" font-size="16" font-style="italic" fill="#1a1a1a">β</text>
+
+  <!-- Auftreffpunkt -->
+  <circle cx="350" cy="230" r="3.5" fill="#1a1a1a"/>
+
+  <!-- Legende -->
+  <g transform="translate(40, 410)">
+    <rect x="0" y="0" width="240" height="80" fill="white" stroke="#ccc" stroke-width="1" rx="4"/>
+    <line x1="12" y1="18" x2="40" y2="18" stroke="#c0392b" stroke-width="2.5" marker-end="url(#arrowR)"/>
+    <text x="48" y="22" font-size="13" fill="#1a1a1a">einfallender Strahl r</text>
+    <line x1="12" y1="40" x2="40" y2="40" stroke="#27ae60" stroke-width="2.2" marker-end="url(#arrowN)"/>
+    <text x="48" y="44" font-size="13" fill="#1a1a1a">Normale n</text>
+    <line x1="12" y1="62" x2="40" y2="62" stroke="#2980b9" stroke-width="2.5" marker-end="url(#arrowT)"/>
+    <text x="48" y="66" font-size="13" fill="#1a1a1a">gebrochener Strahl t</text>
+  </g>
+</svg>
