@@ -172,7 +172,7 @@ fn intersect_cap_with_radius_one(
     }
 }
 
-fn solve_quadratic(a: f32, b: f32, c: f32) -> Option<f32> {
+pub fn solve_quadratic(a: f32, b: f32, c: f32) -> Option<f32> {
     let discriminant = b * b - 4f32 * a * c;
     if discriminant < 0.0 {
         None
@@ -180,11 +180,12 @@ fn solve_quadratic(a: f32, b: f32, c: f32) -> Option<f32> {
         let sqrt_d = -discriminant.sqrt();
         let q = -0.5 * (b + sqrt_d.copysign(b));
         let t0 = q / a;
-        if t0 > 0.0 {
-            Some(t0.min(c / q))
-        } else {
-            let t1 = c / q;
-            (t1 > 0.0).then_some(t1)
+        let t1 = c/q;
+        match (t0 > 0.0, t1 > 0.0) {
+            (true, true) => Some(t0.min(t1)),
+            (true, false) => Some(t0),
+            (false, true) => Some(t1),
+            (false, false) => None,
         }
     }
 }
@@ -237,3 +238,4 @@ fn test_if_hits_between_0_1(ray: &Ray) -> impl Fn(&Hit) -> bool {
         p.z > 0.0 && p.z < 1.0
     }
 }
+
