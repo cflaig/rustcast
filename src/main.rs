@@ -1,6 +1,6 @@
 use rustcast::camera::Camera;
 use rustcast::renderer::{RenderMode, Renderer};
-use rustcast::scenes::{make_axes_scene, make_cornell_scene, make_default_scene, make_scene_cylinder_plane};
+use rustcast::scenes::{make_axes_scene, make_box_scene, make_cornell_scene, make_default_scene, make_scene_cylinder_plane};
 use rustcast::shape::Shape;
 use rustcast::types::Light;
 
@@ -57,8 +57,15 @@ impl eframe::App for App {
             egui::ComboBox::from_label("Scene")
                 .selected_text(format!("{}", self.scene))
                 .show_ui(ui, |ui| {
-                    for i in 0..10 {
-                        ui.selectable_value(&mut self.scene, i, format!("{}", i));
+                    for i in 0..5 {
+                        let name = match i {
+                            1 => "Cornell Box",
+                            2 => "Axes",
+                            3 => "Cylinder/Plane",
+                            4 => "Box Scene",
+                            _ => "Default",
+                        };
+                        ui.selectable_value(&mut self.scene, i, name);
                     }
                 });
             ui.label(format!("Rendering Time: {:.5}s", self.elapsed));
@@ -127,6 +134,7 @@ fn load_scene(scene: u8) -> (Camera, Vec<Light>, Vec<Shape>) {
         1 => make_cornell_scene(),
         2 => make_axes_scene(),
         3 => make_scene_cylinder_plane(),
+        4 => make_box_scene(),
         _ => make_default_scene(),
     }
 }

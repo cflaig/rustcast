@@ -40,12 +40,15 @@ pub struct Material {
     pub color: Vec3,
     pub reflection: f32,
     pub shininess: f32,
+    pub transparency: f32,
+    pub ior: f32, // Index of Refraction
     pub specular_coef: f32,
     // path tracer
     pub emission: f32,
     // ray tracer
     pub ambient: f32,
 }
+
 
 #[derive(Copy, Clone, Debug)]
 pub struct Light {
