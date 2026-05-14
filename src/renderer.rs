@@ -264,8 +264,13 @@ pub fn refract_ray(r: &Vec3, mut n: Vec3, mut eta: f32) -> Option<Vec3> {
 pub fn sample_random_on_sphere(rng: &mut SmallRng) -> Vec3 {
     //z: latitude of the sphere
     let z: f32 = rng.random_range(-1.0..=1.0);
-    let phi: f32 = rng.random_range(0.0..=std::f32::consts::TAU);
+    let phi: f32 = rng.random_range(0.0..=2.0 * std::f32::consts::PI);
     // Convert spherical to Cartesian.
     let r_xy = (1.0f32 - z * z).sqrt(); // circle radius at latitude z
     Vec3::new(r_xy * phi.cos(), r_xy * phi.sin(), z)
+}
+
+pub fn sample_cosine_weighted_hemisphere(rng: &mut SmallRng, normal: Vec3) -> Vec3 {
+    let s = sample_random_on_sphere(rng);
+    (s + normal).normalize()
 }
