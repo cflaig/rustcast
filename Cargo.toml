@@ -12,4 +12,5 @@ rand = "0.9"
 rand-wyrand = "0.3"
 strum_macros = "0.26.4"
 rayon = "1.11.0"
+thread-priority = "3.0.0"
 

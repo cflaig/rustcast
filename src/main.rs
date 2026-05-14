@@ -1,15 +1,30 @@
 use rustcast::camera::Camera;
 use rustcast::renderer::{RenderMode, Renderer};
-use rustcast::scenes::{make_axes_scene, make_box_scene, make_cornell_scene, make_default_scene, make_scene_cylinder_plane};
+use rustcast::scenes::{
+    make_axes_scene, make_box_scene, make_cornell_scene, make_default_scene,
+    make_scene_cylinder_plane,
+};
 use rustcast::shape::Shape;
 use rustcast::types::Light;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::thread;
 
-use std::time::Duration;
-use rustcast::renderer::RenderMode::Raycast;
 use eframe::egui::{Context, Ui, Vec2};
 use eframe::{Frame, egui};
-use glam::{Vec3};
+use glam::Vec3;
+use rustcast::renderer::RenderMode::Raycast;
+use std::time::Duration;
 use strum::IntoEnumIterator;
+use thread_priority::{ThreadPriority, ThreadPriorityValue};
+
+fn lower_current_thread_priority() {
+    if let Err(err) =
+        ThreadPriority::Crossplatform(ThreadPriorityValue::try_from(0).unwrap()).set_for_current()
+    {
+        eprintln!("Could not lower thread priority: {err}");
+    }
+}
 
 struct App {
     samples: u32,
@@ -19,33 +34,64 @@ struct App {
     last_scene: usize,
     last_mode: RenderMode,
     last_size: [usize; 2],
-    renderer: Renderer,
+    pixels_size: [usize; 2],
     iterations: usize,
+    pixels: Vec<u8>,
+    last_frame_buffer: Vec<Vec3>,
+    exposure: f32,
+    gamma: f32,
+    start_timer: std::time::Instant,
+    render_thread: Option<thread::JoinHandle<()>>,
+    cancel_render: Option<Arc<AtomicBool>>,
+    tx: std::sync::mpsc::Sender<(Vec<Vec3>, usize, usize)>,
+    rx: std::sync::mpsc::Receiver<(Vec<Vec3>, usize, usize)>,
 }
 
 impl App {
     pub fn new() -> Self {
-        let (camera, lights, shapes) = load_scene(1);
-        let renderer = Renderer::new(5, 5, RenderMode::Raycast, camera, lights, shapes);
+        let (_camera, _lights, _shapes) = load_scene(1);
+        let (tx, rx) = std::sync::mpsc::channel();
 
         Self {
             samples: 1,
             elapsed: 0.0,
-            render_mode: RenderMode::Raycast,
+            render_mode: Raycast,
             scene: 1,
             last_scene: 1,
             last_mode: Raycast,
             last_size: [5, 5],
-            renderer,
+            pixels_size: [5, 5],
             iterations: 0,
+            pixels: vec![0; 5 * 5 * 4],
+            last_frame_buffer: Vec::new(),
+            exposure: 0.0,
+            gamma: 2.2,
+            start_timer: std::time::Instant::now(),
+            tx,
+            rx,
+            render_thread: None,
+            cancel_render: None,
         }
     }
 }
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
+        let mut params_changed = false;
         egui::SidePanel::right("right").show(ctx, |ui| {
             ui.add(egui::Slider::new(&mut self.samples, 1..=100).text("Samples"));
+            if ui
+                .add(egui::Slider::new(&mut self.exposure, -3.0..=3.0).text("Exposure"))
+                .changed()
+            {
+                params_changed = true;
+            }
+            if ui
+                .add(egui::Slider::new(&mut self.gamma, 1.8..=2.6).text("Gamma"))
+                .changed()
+            {
+                params_changed = true;
+            }
             ui.label(format!("Using Samples: {}", self.samples));
             for mode in RenderMode::iter() {
                 ui.radio_value(
@@ -79,11 +125,24 @@ impl eframe::App for App {
                 || self.render_mode != self.last_mode
                 || self.scene != self.last_scene
             {
+                if let Some(cancel) = self.cancel_render.take() {
+                    cancel.store(true, Ordering::Relaxed);
+                }
+                if let Some(handle) = self.render_thread.take() {
+                    let _ = handle.join();
+                }
+                while self.rx.try_recv().is_ok() {}
+                let cancel = Arc::new(AtomicBool::new(false));
+                self.cancel_render = Some(Arc::clone(&cancel));
+
                 let (camera, lights, shapes) = load_scene(self.scene as u8);
                 self.last_size = [size.x as usize, size.y as usize];
+                self.pixels_size = self.last_size;
                 self.last_scene = self.scene;
                 self.last_mode = self.render_mode;
-                self.renderer = Renderer::new(
+                self.pixels = vec![0; size.x as usize * size.y as usize * 4];
+                self.last_frame_buffer.clear();
+                let mut renderer = Renderer::new(
                     size.x as usize,
                     size.y as usize,
                     self.render_mode,
@@ -92,22 +151,56 @@ impl eframe::App for App {
                     shapes,
                 );
                 self.iterations = 0;
+                let tx_channel = self.tx.clone();
+
+                self.render_thread = Some(thread::spawn(move || {
+                    lower_current_thread_priority();
+                    let pool = rayon::ThreadPoolBuilder::new()
+                        .start_handler(|_| lower_current_thread_priority())
+                        .build()
+                        .unwrap();
+                    pool.install(|| renderer.render(tx_channel, cancel));
+                }));
+                self.start_timer = std::time::Instant::now();
             }
-            let start_time = std::time::Instant::now();
-            let mut pixels = render(
-                [size.x as usize, size.y as usize],
-                self.samples,
-                self.render_mode,
-                &mut self.renderer,
-            );
+
+            match self.rx.try_recv() {
+                Ok((frame_buffer, w, h)) => {
+                    self.last_frame_buffer = frame_buffer;
+                    self.pixels_size = [w, h];
+                    self.iterations += 1;
+                    self.elapsed = self.start_timer.elapsed().as_secs_f64();
+                    self.pixels = match self.render_mode {
+                        RenderMode::Pathtracing => {
+                            tone_mapping(&self.last_frame_buffer, self.exposure, self.gamma)
+                        }
+                        _ => {
+                            simple_tone_mapping(&self.last_frame_buffer, self.exposure, self.gamma)
+                        }
+                    };
+                }
+                Err(std::sync::mpsc::TryRecvError::Empty) => {}
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                    eprintln!("Error receiving frame buffer: disconnected");
+                }
+            };
+
+            if params_changed && !self.last_frame_buffer.is_empty() {
+                self.pixels = match self.render_mode {
+                    RenderMode::Pathtracing => {
+                        tone_mapping(&self.last_frame_buffer, self.exposure, self.gamma)
+                    }
+                    _ => simple_tone_mapping(&self.last_frame_buffer, self.exposure, self.gamma),
+                };
+            }
 
             ui.add(
                 egui::Image::new(egui::load::SizedTexture::new(
                     &ctx.load_texture(
                         "raytraced",
                         egui::ColorImage::from_rgba_unmultiplied(
-                            [size.x as usize, size.y as usize],
-                            pixels.as_mut_slice(),
+                            self.pixels_size,
+                            self.pixels.as_mut_slice(),
                         ),
                         Default::default(),
                     ),
@@ -115,8 +208,7 @@ impl eframe::App for App {
                 ))
                 .fit_to_exact_size(size),
             );
-            self.iterations += 1;
-            self.elapsed = start_time.elapsed().as_secs_f64();
+
             ctx.request_repaint_after(Duration::from_millis(10))
         });
     }
@@ -139,18 +231,10 @@ fn load_scene(scene: u8) -> (Camera, Vec<Light>, Vec<Shape>) {
     }
 }
 
-fn render(_size: [usize; 2], _samples: u32, render_mode: RenderMode, renderer: &mut Renderer) -> Vec<u8> {
-    let frame_buffer = renderer.render();
-
-    match render_mode {
-        RenderMode::Pathtracing => tone_mapping(&frame_buffer),
-        _ => simple_tone_mapping(&frame_buffer),
-    }
-}
-
-fn tone_mapping(frame_buffer: &Vec<Vec3>) -> Vec<u8> {
-    let inv_gamma = 1.0 / 2.2;
-    let exposure_inv = compute_exposure_inv(&frame_buffer);
+fn tone_mapping(frame_buffer: &Vec<Vec3>, exposure: f32, gamma: f32) -> Vec<u8> {
+    let inv_gamma = 1.0 / gamma;
+    let exposure_scale = 2.0f32.powf(exposure);
+    let exposure_inv = compute_exposure_inv(frame_buffer) / exposure_scale;
 
     frame_buffer
         .iter()
@@ -164,18 +248,16 @@ fn tone_mapping(frame_buffer: &Vec<Vec3>) -> Vec<u8> {
         .collect::<Vec<u8>>()
 }
 
-fn simple_tone_mapping(frame_buffer: &Vec<Vec3>) -> Vec<u8> {
-    let max = frame_buffer.iter()
+fn simple_tone_mapping(frame_buffer: &Vec<Vec3>, _exposure: f32, _gamma: f32) -> Vec<u8> {
+    let max = frame_buffer
+        .iter()
         .flat_map(|v| v.to_array())
         .reduce(f32::max)
         .unwrap_or(0.01);
 
     frame_buffer
         .iter()
-        .map(|x| {
-            (x / max)
-                .clamp(Vec3::ZERO, Vec3::ONE)
-        })
+        .map(|x| (x / max).clamp(Vec3::ZERO, Vec3::ONE))
         .flat_map(|v3| v3.extend(1.0).to_array())
         .map(|v4| (v4 * 255.0) as u8)
         .collect::<Vec<u8>>()

@@ -1,6 +1,6 @@
 use crate::camera::Camera;
 use crate::shape::Shape;
-use crate::types::{Hit, Light, Ray, find_first_hit};
+use crate::types::{find_first_hit, Hit, Light, Ray};
 use glam::Vec3;
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
@@ -8,9 +8,11 @@ use rayon::iter::IndexedParallelIterator;
 use rayon::iter::ParallelIterator;
 use rayon::slice::ParallelSliceMut;
 use std::fmt::Debug;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use strum_macros::{EnumIter, IntoStaticStr};
 
-#[derive(PartialEq, IntoStaticStr, EnumIter, Clone, Copy)]
+#[derive(PartialEq, IntoStaticStr, EnumIter, Clone, Copy, Debug)]
 pub enum RenderMode {
     Normals,
     Raycast,
@@ -22,6 +24,7 @@ struct RenderPixel {
     color: Vec3,
     sample_count: u32,
 }
+
 pub struct Renderer {
     frame_buffer: Vec<RenderPixel>,
     width: usize,
@@ -58,50 +61,68 @@ impl Renderer {
             shapes,
         }
     }
-    pub fn render(&mut self) -> Vec<Vec3> {
-        let samples = match self.render_mode {
-            RenderMode::Pathtracing => 10,
-            _ => 1,
+    pub fn render(
+        &mut self,
+        tx_channel: std::sync::mpsc::Sender<(Vec<Vec3>, usize, usize)>,
+        cancel: Arc<AtomicBool>,
+    ) {
+        let (samples, iterations) = match self.render_mode {
+            RenderMode::Pathtracing => (10, 20000),
+            _ => (1, 1),
         };
 
-        self.frame_buffer
-            .par_chunks_mut(self.width)
-            .enumerate()
-            .for_each(|(y, row)| {
-                let mut rng: SmallRng = SmallRng::from_os_rng();
-
-                for x in 0..self.width {
-                    let mut color = Vec3::new(0.0, 0.0, 0.0);
-                    for _ in 0..samples {
-                        let ray = self.camera.generate_ray(
-                            x as f32 / self.width as f32,
-                            y as f32 / self.height as f32,
-                        );
-
-                        let best_hit =
-                            find_first_hit(self.shapes.iter().map(|s| s.intersect(&ray)));
-
-                        color += match self.render_mode {
-                            RenderMode::Normals => render_normals(best_hit),
-                            RenderMode::Raycast => raycast(&self.camera, &ray, best_hit),
-                            RenderMode::Raytrace => {
-                                raytrace(&self.light, &self.shapes, &ray, best_hit, 10)
-                            }
-                            RenderMode::Pathtracing => {
-                                pathtrace(&self.shapes, &ray, best_hit, &mut rng)
-                            }
-                        };
+        for _ in 0..iterations {
+            if cancel.load(Ordering::Relaxed) {
+                return;
+            }
+            self.frame_buffer
+                .par_chunks_mut(self.width)
+                .enumerate()
+                .for_each(|(y, row)| {
+                    if cancel.load(Ordering::Relaxed) {
+                        return;
                     }
+                    let mut rng: SmallRng = SmallRng::from_os_rng();
 
-                    row[x].color += color;
-                    row[x].sample_count += samples as u32;
-                }
-            });
+                    for x in 0..self.width {
+                        let mut color = Vec3::new(0.0, 0.0, 0.0);
+                        for _ in 0..samples {
+                            let ray = self.camera.generate_ray(
+                                x as f32 / self.width as f32,
+                                y as f32 / self.height as f32,
+                            );
 
-        self.frame_buffer
-            .iter()
-            .map(|p| p.color / (p.sample_count as f32))
-            .collect::<Vec<Vec3>>()
+                            let best_hit =
+                                find_first_hit(self.shapes.iter().map(|s| s.intersect(&ray)));
+
+                            color += match self.render_mode {
+                                RenderMode::Normals => render_normals(best_hit),
+                                RenderMode::Raycast => raycast(&self.camera, &ray, best_hit),
+                                RenderMode::Raytrace => {
+                                    raytrace(&self.light, &self.shapes, &ray, best_hit, 10)
+                                }
+                                RenderMode::Pathtracing => {
+                                    pathtrace(&self.shapes, &ray, best_hit, &mut rng)
+                                }
+                            };
+                        }
+
+                        row[x].color += color;
+                        row[x].sample_count += samples as u32;
+                    }
+                });
+
+            tx_channel
+                .send((
+                    self.frame_buffer
+                        .iter()
+                        .map(|p| p.color / (p.sample_count as f32))
+                        .collect::<Vec<Vec3>>(),
+                    self.width,
+                    self.height,
+                ))
+                .unwrap();
+        }
     }
 }
 
@@ -116,15 +137,19 @@ fn raycast(camera: &Camera, ray: &Ray, best_hit: Option<Hit>) -> Vec3 {
         let brightness = l.dot(hit.normal).max(0.0);
         let texture = hit.texture;
         let material = texture.material_at(&hit, &ray);
-        material.ambient * material.color
-            + (1.0 - material.ambient) * brightness * material.color
+        material.ambient * material.color + (1.0 - material.ambient) * brightness * material.color
     })
 }
 
 const ORIGIN_BIAS: f32 = 1e-4;
 
-fn raytrace(light: &Vec<Light>, shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>, max_depth: usize) -> Vec3 {
-
+fn raytrace(
+    light: &Vec<Light>,
+    shapes: &Vec<Shape>,
+    ray: &Ray,
+    best_hit: Option<Hit>,
+    max_depth: usize,
+) -> Vec3 {
     const BLACK: Vec3 = Vec3::new(0.0, 0.0, 0.0);
     if max_depth == 0 {
         return BLACK;
@@ -137,33 +162,39 @@ fn raytrace(light: &Vec<Light>, shapes: &Vec<Shape>, ray: &Ray, best_hit: Option
         if material.reflection > 0.0 {
             let reflected_ray = Ray {
                 origin: hit.point(&ray) + hit.normal * ORIGIN_BIAS,
-                direction: ray.direction - 2.0 * ray.direction.dot(hit.normal) * hit.normal //ray.direction.reflect(hit.normal)
+                direction: ray.direction - 2.0 * ray.direction.dot(hit.normal) * hit.normal, //ray.direction.reflect(hit.normal)
             };
             let reflected_hit = find_first_hit(shapes.iter().map(|s| s.intersect(&reflected_ray)));
-            return raytrace(light, shapes, &reflected_ray, reflected_hit, max_depth-1);
+            return raytrace(light, shapes, &reflected_ray, reflected_hit, max_depth - 1);
         }
         if material.transparency > 0.0 {
-            let eta = 1.0/material.ior;
-            let offset = if ray.direction.dot(hit.normal) < 0.0 { -ORIGIN_BIAS } else { ORIGIN_BIAS };
+            let eta = 1.0 / material.ior;
+            let offset = if ray.direction.dot(hit.normal) < 0.0 {
+                -ORIGIN_BIAS
+            } else {
+                ORIGIN_BIAS
+            };
 
-           return  match refract_ray(&ray.direction, hit.normal, eta ).map(|r| {
+            return match refract_ray(&ray.direction, hit.normal, eta).map(|r| {
                 let refracted_ray = Ray {
                     origin: hit.point(&ray) + hit.normal * offset,
                     direction: r,
                 };
 
-                let refracted_hit = find_first_hit(shapes.iter().map(|s| s.intersect(&refracted_ray)));
-                raytrace(light, shapes, &refracted_ray, refracted_hit, max_depth-1)
+                let refracted_hit =
+                    find_first_hit(shapes.iter().map(|s| s.intersect(&refracted_ray)));
+                raytrace(light, shapes, &refracted_ray, refracted_hit, max_depth - 1)
             }) {
                 None => {
                     let reflected_ray = Ray {
                         origin: hit.point(&ray) + hit.normal * ORIGIN_BIAS,
-                        direction: ray.direction - 2.0 * ray.direction.dot(hit.normal) * hit.normal //ray.direction.reflect(hit.normal)
+                        direction: ray.direction - 2.0 * ray.direction.dot(hit.normal) * hit.normal, //ray.direction.reflect(hit.normal)
                     };
-                    let reflected_hit = find_first_hit(shapes.iter().map(|s| s.intersect(&reflected_ray)));
-                    raytrace(light, shapes, &reflected_ray, reflected_hit, max_depth-1)
-                },
-                Some(v) => v
+                    let reflected_hit =
+                        find_first_hit(shapes.iter().map(|s| s.intersect(&reflected_ray)));
+                    raytrace(light, shapes, &reflected_ray, reflected_hit, max_depth - 1)
+                }
+                Some(v) => v,
             };
         }
         material.ambient * material.color
@@ -200,7 +231,7 @@ fn pathtrace(shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>, rng: &mut Sm
         let mut cur_ray = *ray;
         let mut bias = ORIGIN_BIAS;
         let mut new_direction;
-        let mut new_origin ;
+        let mut new_origin;
 
         for bounce in 0..12 {
             let material = cur_hit.texture.material_at(&cur_hit, &cur_ray);
@@ -210,16 +241,22 @@ fn pathtrace(shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>, rng: &mut Sm
             }
 
             if material.reflection > 0.0 {
-                new_direction = cur_ray.direction - 2.0 * cur_ray.direction.dot(cur_hit.normal) * cur_hit.normal;
+                new_direction = cur_ray.direction
+                    - 2.0 * cur_ray.direction.dot(cur_hit.normal) * cur_hit.normal;
             } else if material.transparency > 0.0 {
-                let eta = 1.0/material.ior;
-                bias = if cur_ray.direction.dot(cur_hit.normal) < 0.0 { -ORIGIN_BIAS } else { ORIGIN_BIAS };
+                let eta = 1.0 / material.ior;
+                bias = if cur_ray.direction.dot(cur_hit.normal) < 0.0 {
+                    -ORIGIN_BIAS
+                } else {
+                    ORIGIN_BIAS
+                };
 
-                match refract_ray(&cur_ray.direction, cur_hit.normal, eta ) {
+                match refract_ray(&cur_ray.direction, cur_hit.normal, eta) {
                     None => {
                         bias = ORIGIN_BIAS;
-                        new_direction = cur_ray.direction - 2.0 * cur_ray.direction.dot(cur_hit.normal) * cur_hit.normal;
-                    },
+                        new_direction = cur_ray.direction
+                            - 2.0 * cur_ray.direction.dot(cur_hit.normal) * cur_hit.normal;
+                    }
                     Some(v) => {
                         new_direction = v;
                     }
@@ -259,14 +296,14 @@ pub fn refract_ray(r: &Vec3, mut n: Vec3, mut eta: f32) -> Option<Vec3> {
     let mut cos = r.dot(n);
     if cos > 0.0 {
         n = -n;
-        eta = 1.0/eta;
+        eta = 1.0 / eta;
         cos = -cos;
     }
     let k = 1.0 - eta * eta * (1.0 - cos * cos);
     if k <= 0.0 {
         None
     } else {
-        Some(eta * r - (eta * cos + f32::sqrt(k))*n)
+        Some(eta * r - (eta * cos + f32::sqrt(k)) * n)
     }
 }
 
