@@ -202,8 +202,13 @@ fn pathtrace(shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>, rng: &mut Sm
         let mut new_direction;
         let mut new_origin ;
 
-        for _ in 0..8 {
+        for bounce in 0..12 {
             let material = cur_hit.texture.material_at(&cur_hit, &cur_ray);
+            if material.emission > 0.0 {
+                incoming_light += ray_light * material.emission * material.color;
+                break;
+            }
+
             if material.reflection > 0.0 {
                 new_direction = cur_ray.direction - 2.0 * cur_ray.direction.dot(cur_hit.normal) * cur_hit.normal;
             } else if material.transparency > 0.0 {
@@ -225,13 +230,17 @@ fn pathtrace(shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>, rng: &mut Sm
                 if cos_n_d < 0.0 {
                     new_direction -= 2.0 * cos_n_d * cur_hit.normal; //new_d.reflect(h.normal)
                 }
-
-                if material.emission > 0.0 {
-                    incoming_light += ray_light * material.emission * material.color;
-                    break;
-                }
                 ray_light *= material.color * new_direction.dot(cur_hit.normal) * 2.0;
             }
+
+            if bounce > 2 {
+                let russian_roulette_probability = ray_light.max_element();
+                if rng.random_range(0.0..1.0) > russian_roulette_probability {
+                    break;
+                }
+                ray_light /= russian_roulette_probability;
+            }
+
             new_origin = cur_hit.point(&cur_ray) + cur_hit.normal * bias;
             cur_ray = Ray {
                 origin: new_origin,

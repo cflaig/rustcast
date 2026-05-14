@@ -1,6 +1,5 @@
 # Next Steps
 * Add 2d Checkerboard support
-* Russian Roulette
 * Cosine Weighted Sampling
 * Add specular highlights
 * Add area lights
