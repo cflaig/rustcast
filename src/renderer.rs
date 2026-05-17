@@ -158,6 +158,8 @@ fn raytrace(
     best_hit.map_or(Vec3::new(0.0, 0.0, 0.0), |hit| {
         let texture = hit.texture;
         let material = texture.material_at(&hit, &ray);
+        let mut reflection_color = BLACK;
+        let mut refraction_color = BLACK;
 
         if material.reflection > 0.0 {
             let reflected_ray = Ray {
@@ -165,7 +167,7 @@ fn raytrace(
                 direction: ray.direction - 2.0 * ray.direction.dot(hit.normal) * hit.normal, //ray.direction.reflect(hit.normal)
             };
             let reflected_hit = find_first_hit(shapes.iter().map(|s| s.intersect(&reflected_ray)));
-            return raytrace(light, shapes, &reflected_ray, reflected_hit, max_depth - 1);
+            reflection_color =  raytrace(light, shapes, &reflected_ray, reflected_hit, max_depth - 1);
         }
         if material.transparency > 0.0 {
             let eta = 1.0 / material.ior;
@@ -175,7 +177,7 @@ fn raytrace(
                 ORIGIN_BIAS
             };
 
-            return match refract_ray(&ray.direction, hit.normal, eta).map(|r| {
+            refraction_color =  match refract_ray(&ray.direction, hit.normal, eta).map(|r| {
                 let refracted_ray = Ray {
                     origin: hit.point(&ray) + hit.normal * offset,
                     direction: r,
@@ -197,8 +199,10 @@ fn raytrace(
                 Some(v) => v,
             };
         }
-        material.ambient * material.color
-            + light
+        refraction_color*material.transparency
+        + reflection_color * material.reflection
+        + (1.0 - material.transparency - material.reflection) * material.ambient * material.color
+            + (1.0 - material.transparency - material.reflection) * light
                 .iter()
                 .map(|l| {
                     let p = hit.point(&ray) + hit.normal * ORIGIN_BIAS;
@@ -213,7 +217,10 @@ fn raytrace(
                         .map_or_else(
                             || {
                                 let light = light_ray.direction.dot(hit.normal).max(0.0) * l.color;
-                                (1.0 - material.ambient) * light * material.color
+                                let blinn = 2.0/(material.roughness * material.roughness).max(0.0001) - 2.0;
+                                let specular = (light_ray.direction - ray.direction).normalize().dot(hit.normal).max(0.0).powf(blinn) * (1.0 - (1.0 - material.reflection).powf(3.0)) * l.color;
+                                let color = light * material.color + specular;
+                                (1.0 - material.ambient) * color
                             },
                             |_| BLACK,
                         )

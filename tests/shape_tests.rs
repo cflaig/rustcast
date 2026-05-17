@@ -8,10 +8,9 @@ fn test_square_intersection() {
         color: Vec3::new(1.0, 1.0, 1.0),
         ambient: 0.1,
         reflection: 0.0,
-        shininess: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 0.0,
-        specular_coef: 0.0,
         emission: 0.0,
     };
     let square = Shape::Square { texture: Texture::Constant(material) };
@@ -91,10 +90,9 @@ fn test_box_intersection() {
         color: Vec3::new(1.0, 1.0, 1.0),
         ambient: 0.1,
         reflection: 0.0,
-        shininess: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 0.0,
-        specular_coef: 0.0,
         emission: 0.0,
     };
     let unit_box = Shape::UnitBox { texture: Texture::Constant(material) };
@@ -192,10 +190,9 @@ fn test_cylinder_intersection() {
         color: Vec3::new(1.0, 1.0, 1.0),
         ambient: 0.1,
         reflection: 0.0,
-        shininess: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 0.0,
-        specular_coef: 0.0,
         emission: 0.0,
     };
     let cylinder = Shape::Cylinder { texture: Texture::Constant(material) };
@@ -243,10 +240,9 @@ fn test_cone_intersection() {
         color: Vec3::new(1.0, 1.0, 1.0),
         ambient: 0.1,
         reflection: 0.0,
-        shininess: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 0.0,
-        specular_coef: 0.0,
         emission: 0.0,
     };
     let cone = Shape::Cone { texture: Texture::Constant(material) };

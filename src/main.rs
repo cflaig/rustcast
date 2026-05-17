@@ -2,7 +2,8 @@ use rustcast::camera::Camera;
 use rustcast::renderer::{RenderMode, Renderer};
 use rustcast::scenes::{
     make_axes_scene, make_box_scene, make_cornell_scene, make_default_scene,
-    make_scene_cylinder_plane,
+    make_scene_cylinder_plane, make_three_spheres_scene, make_glass_and_mirror_scene,
+    make_glass_sphere_scene,
 };
 use rustcast::shape::Shape;
 use rustcast::types::Light;
@@ -103,12 +104,15 @@ impl eframe::App for App {
             egui::ComboBox::from_label("Scene")
                 .selected_text(format!("{}", self.scene))
                 .show_ui(ui, |ui| {
-                    for i in 0..5 {
+                    for i in 0..8 {
                         let name = match i {
                             1 => "Cornell Box",
                             2 => "Axes",
                             3 => "Cylinder/Plane",
                             4 => "Box Scene",
+                            5 => "Three Spheres",
+                            6 => "Glass & Mirror",
+                            7 => "Glass Sphere",
                             _ => "Default",
                         };
                         ui.selectable_value(&mut self.scene, i, name);
@@ -227,6 +231,9 @@ fn load_scene(scene: u8) -> (Camera, Vec<Light>, Vec<Shape>) {
         2 => make_axes_scene(),
         3 => make_scene_cylinder_plane(),
         4 => make_box_scene(),
+        5 => make_three_spheres_scene(),
+        6 => make_glass_and_mirror_scene(),
+        7 => make_glass_sphere_scene(),
         _ => make_default_scene(),
     }
 }

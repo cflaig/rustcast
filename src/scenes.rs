@@ -22,8 +22,7 @@ pub fn make_default_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::new(0.0, 0.0, 1.0),
         ambient: 0.3,
         reflection: 0.0,
-        shininess: 0.0,
-        specular_coef: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 1.0,
         emission: 0.3,
@@ -33,8 +32,7 @@ pub fn make_default_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::new(1.0, 0.0, 0.0),
         ambient: 0.3,
         reflection: 0.0,
-        shininess: 0.0,
-        specular_coef: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 1.0,
         emission: 0.3,
@@ -68,8 +66,7 @@ pub fn make_scene_with_eight_boxes() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::new(0.0, 0.0, 1.0),
         ambient: 0.3,
         reflection: 0.0,
-        shininess: 0.0,
-        specular_coef: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 1.0,
         emission: 0.3,
@@ -78,8 +75,7 @@ pub fn make_scene_with_eight_boxes() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::new(1.0, 0.0, 0.0),
         ambient: 0.3,
         reflection: 0.0,
-        shininess: 0.0,
-        specular_coef: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 1.0,
         emission: 0.3,
@@ -121,8 +117,7 @@ pub fn make_scene_cylinder_plane() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::new(0.0, 0.0, 1.0),
         ambient: 0.3,
         reflection: 0.0,
-        shininess: 0.0,
-        specular_coef: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 1.0,
         emission: 0.3,
@@ -132,8 +127,7 @@ pub fn make_scene_cylinder_plane() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::new(1.0, 0.0, 0.0),
         ambient: 0.3,
         reflection: 0.0,
-        shininess: 0.0,
-        specular_coef: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 1.0,
         emission: 0.3,
@@ -158,7 +152,7 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         1.0,
     );
     
-    const NUM_LIGHTS: usize = 3;
+    const NUM_LIGHTS: usize = 10;
     const LIGHT_INTENSITY: f32 = 1.0 / NUM_LIGHTS as f32 / NUM_LIGHTS as f32;
     let mut light: Vec<Light> = Vec::new();
     for x in 0..NUM_LIGHTS {
@@ -178,8 +172,7 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::splat(0.9),
         ambient: 0.0,
         reflection: 0.0,
-        shininess: 0.0,
-        specular_coef: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 1.0,
         emission: 0.0,
@@ -192,8 +185,7 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::splat(0.9),
         ambient: 1.0,
         reflection: 0.0,
-        shininess: 0.0,
-        specular_coef: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 1.0,
         emission: 1.0,
@@ -202,8 +194,7 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::new(0.9, 0.1, 0.1),
         ambient: 0.0,
         reflection: 0.0,
-        shininess: 0.0,
-        specular_coef: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 1.0,
         emission: 0.0,
@@ -216,8 +207,7 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::new(0.1, 0.9, 0.1),
         ambient: 0.0,
         reflection: 0.0,
-        shininess: 0.0,
-        specular_coef: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 1.0,
         emission: 0.0,
@@ -231,8 +221,7 @@ pub fn make_cornell_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::new(0.1, 0.1, 0.9),
         ambient: 0.0,
         reflection: 0.0,
-        shininess: 0.0,
-        specular_coef: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 1.0,
         emission: 0.0,
@@ -312,7 +301,7 @@ pub fn make_box_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         2.0,
     );
 
-    const NUM_LIGHTS: usize = 3;
+    const NUM_LIGHTS: usize = 10;
     const LIGHT_INTENSITY: f32 = 1.0 / NUM_LIGHTS as f32 / NUM_LIGHTS as f32;
     let mut light: Vec<Light> = Vec::new();
     for x in 0..NUM_LIGHTS {
@@ -332,8 +321,7 @@ pub fn make_box_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::splat(0.9),
         ambient: 0.1,
         reflection: 0.0,
-        shininess: 0.0,
-        specular_coef: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 1.0,
         emission: 0.0,
@@ -342,8 +330,7 @@ pub fn make_box_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::splat(0.9),
         ambient: 1.0,
         reflection: 0.0,
-        shininess: 0.0,
-        specular_coef: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 1.0,
         emission: 1.0,
@@ -389,8 +376,7 @@ pub fn make_box_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::splat(1.0),
         ambient: 0.0,
         reflection: 0.0,
-        shininess: 100.0,
-        specular_coef: 0.9,
+        roughness: 0.14,
         transparency: 0.9,
         ior: 1.5,
         emission: 0.0,
@@ -400,8 +386,7 @@ pub fn make_box_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::splat(1.0),
         ambient: 0.0,
         reflection: 0.0,
-        shininess: 100.0,
-        specular_coef: 0.9,
+        roughness: 0.14,
         transparency: 0.9,
         ior: 1.3,
         emission: 0.0,
@@ -411,8 +396,7 @@ pub fn make_box_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::splat(1.0),
         ambient: 0.0,
         reflection: 0.9,
-        shininess: 100.0,
-        specular_coef: 0.9,
+        roughness: 0.14,
         transparency: 0.0,
         ior: 1.5,
         emission: 0.0,
@@ -496,6 +480,235 @@ pub fn make_box_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
     (camera, light, shapes)
 }
 
+pub fn make_three_spheres_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
+    let camera = Camera::new(
+        Vec3::new(-7.0, 0.0, 3.2),
+        Vec3::new(0.0, 2.2, -1.1),
+        Vec3::new(0.0, 0.0, 1.0),
+        1.2,
+    );
+
+    let mut lights: Vec<Light> = Vec::new();
+    for i in 0..3i32 {
+        for j in 0..3i32 {
+            lights.push(Light {
+                position: Vec3::new(
+                    -2.0 + (0.075 * i as f32 + 0.5),
+                    -3.0 + (0.075 * j as f32 + 0.5),
+                    3.0,
+                ),
+                color: Vec3::splat(1.0 / 9.0),
+            });
+        }
+    }
+    lights.push(Light {
+        position: Vec3::new(-2.0, 3.0, 13.0),
+        color: Vec3::new(0.3, 0.3, 0.3),
+    });
+
+    let white_mat = Material {
+        color: Vec3::splat(1.0),
+        ambient: 0.1,
+        roughness: 0.30,
+        reflection: 0.4,
+        transparency: 0.0,
+        ior: 1.0,
+        emission: 0.0,
+    };
+    let yellow_mat = Material {
+        color: Vec3::new(1.0, 1.0, 0.0),
+        ambient: 0.1,
+        roughness: 0.30,
+        reflection: 0.4,
+        transparency: 0.0,
+        ior: 1.1,
+        emission: 0.0,
+    };
+    let red_mat = Material {
+        color: Vec3::new(1.0, 0.0, 0.0),
+        ambient: 0.1,
+        roughness: 0.22,
+        reflection: 0.2,
+        transparency: 0.0,
+        ior: 1.0,
+        emission: 0.0,
+    };
+    let blue_mat = Material {
+        color: Vec3::new(0.0, 0.0, 1.0),
+        ambient: 0.1,
+        roughness: 0.14,
+        reflection: 0.2,
+        transparency: 0.0,
+        ior: 1.0,
+        emission: 0.0,
+    };
+
+    let shapes: Vec<Shape> = vec![
+        Shape::Plane {
+            normal: Vec3::new(0.0, 0.0, 1.0),
+            d: -1.0,
+            texture: Texture::Constant(white_mat),
+        },
+        Shape::Sphere {
+            center: Vec3::new(-0.6, 0.0, 0.4),
+            radius: 1.0,
+            texture: Texture::Constant(yellow_mat),
+        },
+        Shape::Sphere {
+            center: Vec3::new(0.0, 0.6, 0.4),
+            radius: 1.0,
+            texture: Texture::Constant(red_mat),
+        },
+        Shape::Sphere {
+            center: Vec3::new(0.0, -0.6, 0.4),
+            radius: 1.0,
+            texture: Texture::Constant(blue_mat),
+        },
+    ];
+
+    (camera, lights, shapes)
+}
+
+pub fn make_glass_and_mirror_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
+    let camera = Camera::new(
+        Vec3::new(-5.0, 0.0, 1.3),
+        Vec3::new(0.0, 0.0, 1.0),
+        Vec3::new(0.0, 0.0, 1.0),
+        1.0,
+    );
+
+    let lights = vec![
+        Light {
+            position: Vec3::new(-0.4, -2.4, 4.0),
+            color: Vec3::new(0.6, 0.6, 0.5),
+        },
+        Light {
+            position: Vec3::new(-3.5, 0.2, 19.0),
+            color: Vec3::new(0.7, 0.7, 0.9),
+        },
+    ];
+
+    let floor_light = Material {
+        color: Vec3::new(0.8, 0.6, 0.6),
+        ambient: 0.1,
+        roughness: 0.30,
+        reflection: 0.1,
+        transparency: 0.0,
+        ior: 1.0,
+        emission: 0.0,
+    };
+    let floor_dark = Material {
+        color: Vec3::new(0.4, 0.3, 0.3),
+        ambient: 0.1,
+        roughness: 0.30,
+        reflection: 0.1,
+        transparency: 0.0,
+        ior: 1.0,
+        emission: 0.0,
+    };
+    let big_sphere_mat = Material {
+        color: Vec3::new(0.7, 0.7, 0.7),
+        ambient: 0.1,
+        roughness: 0.30,
+        reflection: 0.5,
+        transparency: 0.9,
+        ior: 2.5,
+        emission: 0.0,
+    };
+    let small_sphere_mat = Material {
+        color: Vec3::new(0.7, 0.7, 1.0),
+        ambient: 0.1,
+        roughness: 0.22,
+        reflection: 0.9,
+        transparency: 0.0,
+        ior: 1.0,
+        emission: 0.0,
+    };
+
+    let shapes: Vec<Shape> = vec![
+        Shape::Plane {
+            normal: Vec3::new(0.0, 0.0, 1.0),
+            d: 0.0,
+            texture: Texture::Brick(floor_light, floor_dark),
+        },
+        Shape::Sphere {
+            center: Vec3::new(-0.6, 1.6, 1.0),
+            radius: 1.0,
+            texture: Texture::Constant(big_sphere_mat),
+        },
+        Shape::Sphere {
+            center: Vec3::new(0.0, -0.2, 1.0),
+            radius: 0.4,
+            texture: Texture::Constant(small_sphere_mat),
+        },
+    ];
+
+    (camera, lights, shapes)
+}
+
+pub fn make_glass_sphere_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
+    let camera = Camera::new(
+        Vec3::new(-5.0, 0.0, 1.3),
+        Vec3::new(0.0, 1.0, 1.0),
+        Vec3::new(0.0, 0.0, 1.0),
+        1.2,
+    );
+
+    let lights = vec![
+        Light {
+            position: Vec3::new(-0.4, -2.4, 4.0),
+            color: Vec3::new(0.6, 0.6, 0.5),
+        },
+        Light {
+            position: Vec3::new(-3.5, 0.2, 19.0),
+            color: Vec3::new(0.7, 0.7, 0.9),
+        },
+    ];
+
+    let floor_light = Material {
+        color: Vec3::splat(1.0),
+        ambient: 0.1,
+        roughness: 0.30,
+        reflection: 0.4,
+        transparency: 0.0,
+        ior: 1.0,
+        emission: 0.0,
+    };
+    let floor_dark = Material {
+        color: Vec3::splat(0.1),
+        ambient: 0.1,
+        roughness: 0.30,
+        reflection: 0.1,
+        transparency: 0.0,
+        ior: 1.0,
+        emission: 0.0,
+    };
+    let sphere_mat = Material {
+        color: Vec3::new(0.7, 0.7, 0.7),
+        ambient: 0.1,
+        roughness: 0.30,
+        reflection: 0.5,
+        transparency: 0.0,
+        ior: 2.5,
+        emission: 0.0,
+    };
+
+    let shapes: Vec<Shape> = vec![
+        Shape::Plane {
+            normal: Vec3::new(0.0, 0.0, 1.0),
+            d: 0.0,
+            texture: Texture::Brick(floor_light, floor_dark),
+        },
+        Shape::Sphere {
+            center: Vec3::new(0.0, 0.0, 1.0),
+            radius: 1.0,
+            texture: Texture::Constant(sphere_mat),
+        },
+    ];
+
+    (camera, lights, shapes)
+}
+
 pub fn make_axes_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
     let camera = Camera::new(
         Vec3::new(1.5, 4.0, 1.35),
@@ -512,8 +725,7 @@ pub fn make_axes_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::new(1.0, 0.0, 0.0),
         ambient: 0.3,
         reflection: 0.0,
-        shininess: 0.0,
-        specular_coef: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 1.0,
         emission: 0.3,
@@ -522,8 +734,7 @@ pub fn make_axes_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::new(0.0, 1.0, 0.0),
         ambient: 0.3,
         reflection: 0.0,
-        shininess: 0.0,
-        specular_coef: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 1.0,
         emission: 0.3,
@@ -532,8 +743,7 @@ pub fn make_axes_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::new(0.0, 0.0, 1.0),
         ambient: 0.3,
         reflection: 0.0,
-        shininess: 0.0,
-        specular_coef: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 1.0,
         emission: 0.3,
@@ -542,8 +752,7 @@ pub fn make_axes_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::splat(0.9),
         ambient: 0.2,
         reflection: 0.0,
-        shininess: 0.0,
-        specular_coef: 0.0,
+        roughness: 0.0,
         transparency: 0.0,
         ior: 1.0,
         emission: 0.0,

@@ -39,10 +39,9 @@ impl Texture {
 pub struct Material {
     pub color: Vec3,
     pub reflection: f32,
-    pub shininess: f32,
+    pub roughness: f32,
     pub transparency: f32,
     pub ior: f32, // Index of Refraction
-    pub specular_coef: f32,
     // path tracer
     pub emission: f32,
     // ray tracer
