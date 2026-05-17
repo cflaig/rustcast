@@ -386,7 +386,7 @@ pub fn make_box_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::splat(1.0),
         ambient: 0.0,
         reflection: 0.0,
-        roughness: 0.14,
+        roughness: 0.1,
         transparency: 0.9,
         ior: 1.3,
         emission: 0.0,
@@ -396,7 +396,7 @@ pub fn make_box_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         color: Vec3::splat(1.0),
         ambient: 0.0,
         reflection: 0.9,
-        roughness: 0.14,
+        roughness: 0.11,
         transparency: 0.0,
         ior: 1.5,
         emission: 0.0,
@@ -543,6 +543,25 @@ pub fn make_three_spheres_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         emission: 0.0,
     };
 
+    let light_mat_near = Material {
+        color: Vec3::splat(1.0),
+        ambient: 0.0,
+        roughness: 0.0,
+        reflection: 0.0,
+        transparency: 0.0,
+        ior: 1.0,
+        emission: 0.3,
+    };
+    let light_mat_far = Material {
+        color: Vec3::new(1.0, 1.0, 1.0),
+        ambient: 0.0,
+        roughness: 0.0,
+        reflection: 0.0,
+        transparency: 0.0,
+        ior: 1.0,
+        emission: 5.0,
+    };
+
     let shapes: Vec<Shape> = vec![
         Shape::Plane {
             normal: Vec3::new(0.0, 0.0, 1.0),
@@ -563,6 +582,16 @@ pub fn make_three_spheres_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
             center: Vec3::new(0.0, -0.6, 0.4),
             radius: 1.0,
             texture: Texture::Constant(blue_mat),
+        },
+        Shape::Sphere {
+            center: Vec3::new(-1.5, -2.5, 4.26),
+            radius: 1.25,
+            texture: Texture::Constant(light_mat_near),
+        },
+        Shape::Sphere {
+            center: Vec3::new(-2.0, 3.0, 15.0),
+            radius: 0.5,
+            texture: Texture::Constant(light_mat_far),
         },
     ];
 
@@ -588,6 +617,25 @@ pub fn make_glass_and_mirror_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
         },
     ];
 
+    let light_mat_near = Material {
+        color: Vec3::new(0.6, 0.6, 0.5),
+        ambient: 0.0,
+        roughness: 0.0,
+        reflection: 0.0,
+        transparency: 0.0,
+        ior: 1.0,
+        emission: 2.0,
+    };
+    let light_mat_far = Material {
+        color: Vec3::new(0.7, 0.7, 0.9),
+        ambient: 0.0,
+        roughness: 0.0,
+        reflection: 0.0,
+        transparency: 0.0,
+        ior: 1.0,
+        emission: 0.5,
+    };
+
     let floor_light = Material {
         color: Vec3::new(0.8, 0.6, 0.6),
         ambient: 0.1,
@@ -600,7 +648,7 @@ pub fn make_glass_and_mirror_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
     let floor_dark = Material {
         color: Vec3::new(0.4, 0.3, 0.3),
         ambient: 0.1,
-        roughness: 0.30,
+        roughness: 0.10,
         reflection: 0.1,
         transparency: 0.0,
         ior: 1.0,
@@ -609,7 +657,7 @@ pub fn make_glass_and_mirror_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
     let big_sphere_mat = Material {
         color: Vec3::new(0.7, 0.7, 0.7),
         ambient: 0.1,
-        roughness: 0.30,
+        roughness: 0.10,
         reflection: 0.5,
         transparency: 0.9,
         ior: 2.5,
@@ -641,6 +689,16 @@ pub fn make_glass_and_mirror_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
             radius: 0.4,
             texture: Texture::Constant(small_sphere_mat),
         },
+        Shape::Sphere {
+            center: Vec3::new(-0.4, -2.4, 4.3),
+            radius: 0.2,
+            texture: Texture::Constant(light_mat_near),
+        },
+        Shape::Sphere {
+            center: Vec3::new(-3.5, 0.2, 21.6),
+            radius: 2.5,
+            texture: Texture::Constant(light_mat_far),
+        },
     ];
 
     (camera, lights, shapes)
@@ -664,6 +722,25 @@ pub fn make_glass_sphere_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
             color: Vec3::new(0.7, 0.7, 0.9),
         },
     ];
+
+    let light_mat_near = Material {
+        color: Vec3::new(0.6, 0.6, 0.5),
+        ambient: 0.0,
+        roughness: 0.0,
+        reflection: 0.0,
+        transparency: 0.0,
+        ior: 1.0,
+        emission: 3.0,
+    };
+    let light_mat_far = Material {
+        color: Vec3::new(0.7, 0.7, 0.9),
+        ambient: 0.0,
+        roughness: 0.0,
+        reflection: 0.0,
+        transparency: 0.0,
+        ior: 1.0,
+        emission: 1.0,
+    };
 
     let floor_light = Material {
         color: Vec3::splat(1.0),
@@ -703,6 +780,16 @@ pub fn make_glass_sphere_scene() -> (Camera, Vec<Light>, Vec<Shape>) {
             center: Vec3::new(0.0, 0.0, 1.0),
             radius: 1.0,
             texture: Texture::Constant(sphere_mat),
+        },
+        Shape::Sphere {
+            center: Vec3::new(-0.4, -2.4, 4.3),
+            radius: 0.2,
+            texture: Texture::Constant(light_mat_near),
+        },
+        Shape::Sphere {
+            center: Vec3::new(-3.5, 0.2, 21.6),
+            radius: 2.5,
+            texture: Texture::Constant(light_mat_far),
         },
     ];
 

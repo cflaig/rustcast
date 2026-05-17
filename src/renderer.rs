@@ -247,10 +247,16 @@ fn pathtrace(shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>, rng: &mut Sm
                 break;
             }
 
-            if material.reflection > 0.0 {
+            let rand_lightning = rng.random_range(0.0f32..=1.0);
+            if rand_lightning < material.reflection {
                 new_direction = cur_ray.direction
                     - 2.0 * cur_ray.direction.dot(cur_hit.normal) * cur_hit.normal;
-            } else if material.transparency > 0.0 {
+                new_direction = (new_direction + sample_on_a_unit_disc(rng, new_direction) * material.roughness * material.roughness).normalize();
+                if new_direction.dot(cur_hit.normal) < 0.0 {
+                    new_direction = (new_direction - 2.0 * new_direction.dot(cur_hit.normal) * cur_hit.normal).normalize();
+                }
+                ray_light = ray_light; // * material.reflection / material.reflection;
+            } else if rand_lightning < material.transparency + material.reflection {
                 let eta = 1.0 / material.ior;
                 bias = if cur_ray.direction.dot(cur_hit.normal) < 0.0 {
                     -ORIGIN_BIAS
@@ -268,6 +274,7 @@ fn pathtrace(shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>, rng: &mut Sm
                         new_direction = v;
                     }
                 };
+                new_direction = (new_direction + sample_on_a_unit_disc(rng, new_direction) * material.roughness * material.roughness).normalize();
             } else {
                 new_direction = sample_random_on_sphere(rng);
                 let cos_n_d = new_direction.dot(cur_hit.normal);
@@ -327,3 +334,28 @@ pub fn sample_cosine_weighted_hemisphere(rng: &mut SmallRng, normal: Vec3) -> Ve
     let s = sample_random_on_sphere(rng);
     (s + normal).normalize()
 }
+
+pub fn sample_on_a_unit_disc(rng: &mut SmallRng, normal: Vec3) -> Vec3 {
+    let (tangent, bitangent) = orthonormal_basis_to_normal(normal);
+    let (u, v) = random_unit_disc(rng);
+    tangent * u + bitangent * v
+}
+
+pub fn random_unit_disc(rng: &mut SmallRng) -> (f32, f32) {
+    let theta: f32 = rng.random_range(0.0..=2.0 * std::f32::consts::PI);
+    let r: f32 = rng.random_range::<f32,_>(0.0..=1.0).sqrt();
+    (r * theta.cos(), r * theta.sin())
+}
+
+pub fn orthonormal_basis_to_normal(normal: Vec3) -> (Vec3, Vec3) {
+    //normal.any_orthonormal_pair()
+    let helper = if normal.x.abs() < 0.9 {
+        Vec3::X
+    } else {
+        Vec3::Y
+    };
+    let tangent = normal.cross(helper).normalize();
+    let bitangent = normal.cross(tangent);
+    (tangent, bitangent)
+}
+
