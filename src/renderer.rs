@@ -161,13 +161,13 @@ fn raytrace(
         let mut reflection_color = BLACK;
         let mut refraction_color = BLACK;
 
-        if material.reflection > 0.0 {
+        if material.reflection.max_element() > 0.0 {
             let reflected_ray = Ray {
                 origin: hit.point(&ray) + hit.normal * ORIGIN_BIAS,
                 direction: ray.direction - 2.0 * ray.direction.dot(hit.normal) * hit.normal, //ray.direction.reflect(hit.normal)
             };
             let reflected_hit = find_first_hit(shapes.iter().map(|s| s.intersect(&reflected_ray)));
-            reflection_color =  raytrace(light, shapes, &reflected_ray, reflected_hit, max_depth - 1);
+            reflection_color = raytrace(light, shapes, &reflected_ray, reflected_hit, max_depth - 1);
         }
         if material.transparency > 0.0 {
             let eta = 1.0 / material.ior;
@@ -201,8 +201,8 @@ fn raytrace(
         }
         refraction_color*material.transparency
         + reflection_color * material.reflection
-        + (1.0 - material.transparency - material.reflection) * material.ambient * material.color
-            + (1.0 - material.transparency - material.reflection) * light
+        + (1.0 - material.transparency - material.reflection.max_element()) * material.ambient * material.color
+            + (1.0 - material.transparency - material.reflection.max_element()) * light
                 .iter()
                 .map(|l| {
                     let p = hit.point(&ray) + hit.normal * ORIGIN_BIAS;
@@ -248,15 +248,16 @@ fn pathtrace(shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>, rng: &mut Sm
             }
 
             let rand_lightning = rng.random_range(0.0f32..=1.0);
-            if rand_lightning < material.reflection {
+            let p_reflection = material.reflection.max_element();
+            if rand_lightning < p_reflection {
                 new_direction = cur_ray.direction
                     - 2.0 * cur_ray.direction.dot(cur_hit.normal) * cur_hit.normal;
-                new_direction = (new_direction + sample_on_a_unit_disc(rng, new_direction) * material.roughness * material.roughness).normalize();
+                new_direction = (new_direction + sample_on_disc(rng, new_direction, random_gaussian_disc) * material.roughness * material.roughness).normalize();
                 if new_direction.dot(cur_hit.normal) < 0.0 {
                     new_direction = (new_direction - 2.0 * new_direction.dot(cur_hit.normal) * cur_hit.normal).normalize();
                 }
-                ray_light = ray_light; // * material.reflection / material.reflection;
-            } else if rand_lightning < material.transparency + material.reflection {
+                ray_light *= material.reflection / p_reflection; // * material.reflection / material.reflection;
+            } else if rand_lightning < material.transparency + p_reflection {
                 let eta = 1.0 / material.ior;
                 bias = if cur_ray.direction.dot(cur_hit.normal) < 0.0 {
                     -ORIGIN_BIAS
@@ -274,7 +275,7 @@ fn pathtrace(shapes: &Vec<Shape>, ray: &Ray, best_hit: Option<Hit>, rng: &mut Sm
                         new_direction = v;
                     }
                 };
-                new_direction = (new_direction + sample_on_a_unit_disc(rng, new_direction) * material.roughness * material.roughness).normalize();
+                new_direction = (new_direction + sample_on_disc(rng, new_direction, random_unit_disc) * material.roughness * material.roughness).normalize();
             } else {
                 new_direction = sample_random_on_sphere(rng);
                 let cos_n_d = new_direction.dot(cur_hit.normal);
@@ -335,15 +336,22 @@ pub fn sample_cosine_weighted_hemisphere(rng: &mut SmallRng, normal: Vec3) -> Ve
     (s + normal).normalize()
 }
 
-pub fn sample_on_a_unit_disc(rng: &mut SmallRng, normal: Vec3) -> Vec3 {
+pub fn sample_on_disc(rng: &mut SmallRng, normal: Vec3, disc_sample_function: fn(&mut SmallRng) -> (f32, f32)) -> Vec3 {
     let (tangent, bitangent) = orthonormal_basis_to_normal(normal);
-    let (u, v) = random_unit_disc(rng);
+    let (u, v) = disc_sample_function(rng);
     tangent * u + bitangent * v
 }
 
 pub fn random_unit_disc(rng: &mut SmallRng) -> (f32, f32) {
     let theta: f32 = rng.random_range(0.0..=2.0 * std::f32::consts::PI);
     let r: f32 = rng.random_range::<f32,_>(0.0..=1.0).sqrt();
+    (r * theta.cos(), r * theta.sin())
+}
+
+pub fn random_gaussian_disc(rng: &mut SmallRng) -> (f32, f32) {
+    let theta: f32 = rng.random_range(0.0..=2.0 * std::f32::consts::PI);
+    let u: f32 = rng.random_range::<f32,_>(f32::MIN_POSITIVE..=1.0);
+    let r: f32 = (-2.0 *u.ln()).sqrt();
     (r * theta.cos(), r * theta.sin())
 }
 

@@ -38,7 +38,7 @@ impl Texture {
 #[derive(Copy, Clone, Debug)]
 pub struct Material {
     pub color: Vec3,
-    pub reflection: f32,
+    pub reflection: Vec3,
     pub roughness: f32,
     pub transparency: f32,
     pub ior: f32, // Index of Refraction

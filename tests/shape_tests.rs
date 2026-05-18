@@ -7,7 +7,7 @@ fn test_square_intersection() {
     let material = Material {
         color: Vec3::new(1.0, 1.0, 1.0),
         ambient: 0.1,
-        reflection: 0.0,
+        reflection: Vec3::ZERO,
         roughness: 0.0,
         transparency: 0.0,
         ior: 0.0,
@@ -89,7 +89,7 @@ fn test_box_intersection() {
     let material = Material {
         color: Vec3::new(1.0, 1.0, 1.0),
         ambient: 0.1,
-        reflection: 0.0,
+        reflection: Vec3::ZERO,
         roughness: 0.0,
         transparency: 0.0,
         ior: 0.0,
@@ -189,7 +189,7 @@ fn test_cylinder_intersection() {
     let material = Material {
         color: Vec3::new(1.0, 1.0, 1.0),
         ambient: 0.1,
-        reflection: 0.0,
+        reflection: Vec3::ZERO,
         roughness: 0.0,
         transparency: 0.0,
         ior: 0.0,
@@ -239,7 +239,7 @@ fn test_cone_intersection() {
     let material = Material {
         color: Vec3::new(1.0, 1.0, 1.0),
         ambient: 0.1,
-        reflection: 0.0,
+        reflection: Vec3::ZERO,
         roughness: 0.0,
         transparency: 0.0,
         ior: 0.0,

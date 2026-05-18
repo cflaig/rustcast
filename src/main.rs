@@ -3,7 +3,7 @@ use rustcast::renderer::{RenderMode, Renderer};
 use rustcast::scenes::{
     make_axes_scene, make_box_scene, make_cornell_scene, make_default_scene,
     make_scene_cylinder_plane, make_three_spheres_scene, make_glass_and_mirror_scene,
-    make_glass_sphere_scene,
+    make_glass_sphere_scene, make_sphere_grid_scene,
 };
 use rustcast::shape::Shape;
 use rustcast::types::Light;
@@ -104,7 +104,7 @@ impl eframe::App for App {
             egui::ComboBox::from_label("Scene")
                 .selected_text(format!("{}", self.scene))
                 .show_ui(ui, |ui| {
-                    for i in 0..8 {
+                    for i in 0..9 {
                         let name = match i {
                             1 => "Cornell Box",
                             2 => "Axes",
@@ -113,6 +113,7 @@ impl eframe::App for App {
                             5 => "Three Spheres",
                             6 => "Glass & Mirror",
                             7 => "Glass Sphere",
+                            8 => "Sphere Grid",
                             _ => "Default",
                         };
                         ui.selectable_value(&mut self.scene, i, name);
@@ -234,6 +235,7 @@ fn load_scene(scene: u8) -> (Camera, Vec<Light>, Vec<Shape>) {
         5 => make_three_spheres_scene(),
         6 => make_glass_and_mirror_scene(),
         7 => make_glass_sphere_scene(),
+        8 => make_sphere_grid_scene(),
         _ => make_default_scene(),
     }
 }
@@ -242,11 +244,10 @@ fn tone_mapping(frame_buffer: &Vec<Vec3>, exposure: f32, gamma: f32) -> Vec<u8> 
     let inv_gamma = 1.0 / gamma;
     let exposure_scale = 2.0f32.powf(exposure);
     let exposure_inv = compute_exposure_inv(frame_buffer) / exposure_scale;
-
     frame_buffer
         .iter()
         .map(|x| {
-            (x / (exposure_inv + x))
+            (x / (exposure_inv + x.max_element()))
                 .clamp(Vec3::ZERO, Vec3::ONE)
                 .powf(inv_gamma)
         })
