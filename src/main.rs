@@ -40,7 +40,7 @@ struct App {
     pixels: Vec<u8>,
     last_frame_buffer: Vec<Vec3>,
     exposure: f32,
-    gamma: f32,
+    contrast: f32,
     start_timer: std::time::Instant,
     render_thread: Option<thread::JoinHandle<()>>,
     cancel_render: Option<Arc<AtomicBool>>,
@@ -66,7 +66,7 @@ impl App {
             pixels: vec![0; 5 * 5 * 4],
             last_frame_buffer: Vec::new(),
             exposure: 0.0,
-            gamma: 2.2,
+            contrast: 1.0,
             start_timer: std::time::Instant::now(),
             tx,
             rx,
@@ -88,7 +88,7 @@ impl eframe::App for App {
                 params_changed = true;
             }
             if ui
-                .add(egui::Slider::new(&mut self.gamma, 1.8..=2.6).text("Gamma"))
+                .add(egui::Slider::new(&mut self.contrast, 0.5..=1.5).text("Contrast"))
                 .changed()
             {
                 params_changed = true;
@@ -177,10 +177,10 @@ impl eframe::App for App {
                     self.elapsed = self.start_timer.elapsed().as_secs_f64();
                     self.pixels = match self.render_mode {
                         RenderMode::Pathtracing => {
-                            tone_mapping(&self.last_frame_buffer, self.exposure, self.gamma)
+                            tone_mapping(&self.last_frame_buffer, self.exposure, self.contrast)
                         }
                         _ => {
-                            simple_tone_mapping(&self.last_frame_buffer, self.exposure, self.gamma)
+                            simple_tone_mapping(&self.last_frame_buffer, self.exposure, self.contrast)
                         }
                     };
                 }
@@ -193,9 +193,9 @@ impl eframe::App for App {
             if params_changed && !self.last_frame_buffer.is_empty() {
                 self.pixels = match self.render_mode {
                     RenderMode::Pathtracing => {
-                        tone_mapping(&self.last_frame_buffer, self.exposure, self.gamma)
+                        tone_mapping(&self.last_frame_buffer, self.exposure, self.contrast)
                     }
-                    _ => simple_tone_mapping(&self.last_frame_buffer, self.exposure, self.gamma),
+                    _ => simple_tone_mapping(&self.last_frame_buffer, self.exposure, self.contrast),
                 };
             }
 
@@ -240,23 +240,23 @@ fn load_scene(scene: u8) -> (Camera, Vec<Light>, Vec<Shape>) {
     }
 }
 
-fn tone_mapping(frame_buffer: &Vec<Vec3>, exposure: f32, gamma: f32) -> Vec<u8> {
-    let inv_gamma = 1.0 / gamma;
+const LUMINANCE: Vec3 = Vec3::new(0.2126, 0.7152, 0.0722);
+
+fn tone_mapping(frame_buffer: &Vec<Vec3>, exposure: f32, contrast: f32) -> Vec<u8> {
     let exposure_scale = 2.0f32.powf(exposure);
-    let exposure_inv = compute_exposure_inv(frame_buffer) / exposure_scale;
+    let auto_exposure = (compute_exposure(frame_buffer) / exposure_scale).powf(contrast);
     frame_buffer
         .iter()
         .map(|x| {
-            (x / (exposure_inv + x.max_element()))
+            (x.powf(contrast) / (auto_exposure + x.dot(LUMINANCE).powf(contrast)))
                 .clamp(Vec3::ZERO, Vec3::ONE)
-                .powf(inv_gamma)
         })
         .flat_map(|v3| v3.extend(1.0).to_array())
         .map(|v4| (v4 * 255.0) as u8)
         .collect::<Vec<u8>>()
 }
 
-fn simple_tone_mapping(frame_buffer: &Vec<Vec3>, _exposure: f32, _gamma: f32) -> Vec<u8> {
+fn simple_tone_mapping(frame_buffer: &Vec<Vec3>, _exposure: f32, _contrast: f32) -> Vec<u8> {
     let max = frame_buffer
         .iter()
         .flat_map(|v| v.to_array())
@@ -270,12 +270,10 @@ fn simple_tone_mapping(frame_buffer: &Vec<Vec3>, _exposure: f32, _gamma: f32) ->
         .map(|v4| (v4 * 255.0) as u8)
         .collect::<Vec<u8>>()
 }
-
-fn compute_exposure_inv(frame_buffer: &Vec<Vec3>) -> f32 {
-    let l = Vec3::new(0.2126, 0.7152, 0.0722);
+fn compute_exposure(frame_buffer: &Vec<Vec3>) -> f32 {
     let sum_log = frame_buffer
         .iter()
-        .map(|x| x.dot(l))
+        .map(|x| x.dot(LUMINANCE))
         .map(|x| (x + 1.0 / 512.0).ln())
         .sum::<f32>();
 
