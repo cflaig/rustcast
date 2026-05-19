@@ -1,5 +1,5 @@
 use rustcast::camera::Camera;
-use rustcast::renderer::{RenderMode, Renderer};
+use rustcast::renderer::{RenderMode, Renderer, ResultMessage};
 use rustcast::scenes::{
     make_axes_scene, make_box_scene, make_cornell_scene, make_default_scene,
     make_scene_cylinder_plane, make_three_spheres_scene, make_glass_and_mirror_scene,
@@ -44,8 +44,8 @@ struct App {
     start_timer: std::time::Instant,
     render_thread: Option<thread::JoinHandle<()>>,
     cancel_render: Option<Arc<AtomicBool>>,
-    tx: std::sync::mpsc::Sender<(Vec<Vec3>, usize, usize)>,
-    rx: std::sync::mpsc::Receiver<(Vec<Vec3>, usize, usize)>,
+    tx: std::sync::mpsc::Sender<ResultMessage>,
+    rx: std::sync::mpsc::Receiver<ResultMessage>,
 }
 
 impl App {
@@ -73,6 +73,36 @@ impl App {
             render_thread: None,
             cancel_render: None,
         }
+    }
+
+    fn receive_result(&mut self) -> bool {
+        let mut received = false;
+        loop {
+            match self.rx.try_recv() {
+                Ok(render_result) => {
+                    let result_size = [render_result.frame_width, render_result.frame_height];
+                    for y in 0..render_result.height {
+                        for x in 0..render_result.width {
+                            self.last_frame_buffer[(render_result.y + y) * render_result.frame_width + render_result.x + x] =
+                                render_result.pixels[y * render_result.width + x];
+                        }
+                    }
+                    self.pixels_size = result_size;
+                    if render_result.iteration_completed {
+                        self.iterations += 1;
+                    }
+                    self.elapsed = self.start_timer.elapsed().as_secs_f64();
+                    received = true;
+                    
+                }
+                Err(std::sync::mpsc::TryRecvError::Empty) => break,
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                    eprintln!("Error receiving frame buffer: disconnected");
+                    break
+                }
+            }
+        }
+        received
     }
 }
 
@@ -146,7 +176,7 @@ impl eframe::App for App {
                 self.last_scene = self.scene;
                 self.last_mode = self.render_mode;
                 self.pixels = vec![0; size.x as usize * size.y as usize * 4];
-                self.last_frame_buffer.clear();
+                self.last_frame_buffer = vec![Vec3::default(); size.x as usize * size.y as usize];
                 let mut renderer = Renderer::new(
                     size.x as usize,
                     size.y as usize,
@@ -169,26 +199,16 @@ impl eframe::App for App {
                 self.start_timer = std::time::Instant::now();
             }
 
-            match self.rx.try_recv() {
-                Ok((frame_buffer, w, h)) => {
-                    self.last_frame_buffer = frame_buffer;
-                    self.pixels_size = [w, h];
-                    self.iterations += 1;
-                    self.elapsed = self.start_timer.elapsed().as_secs_f64();
-                    self.pixels = match self.render_mode {
-                        RenderMode::Pathtracing => {
-                            tone_mapping(&self.last_frame_buffer, self.exposure, self.contrast)
-                        }
-                        _ => {
-                            simple_tone_mapping(&self.last_frame_buffer, self.exposure, self.contrast)
-                        }
-                    };
-                }
-                Err(std::sync::mpsc::TryRecvError::Empty) => {}
-                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
-                    eprintln!("Error receiving frame buffer: disconnected");
-                }
-            };
+            if self.receive_result() {
+                self.pixels = match self.render_mode {
+                    RenderMode::Pathtracing => {
+                        tone_mapping(&self.last_frame_buffer, self.exposure, self.contrast)
+                    }
+                    _ => {
+                        simple_tone_mapping(&self.last_frame_buffer, self.exposure, self.contrast)
+                    }
+                };
+            }
 
             if params_changed && !self.last_frame_buffer.is_empty() {
                 self.pixels = match self.render_mode {

@@ -35,6 +35,17 @@ pub struct Renderer {
     shapes: Vec<Shape>,
 }
 
+pub struct ResultMessage {
+    pub pixels: Vec<Vec3>,
+    pub x: usize,
+    pub y: usize,
+    pub width: usize,
+    pub height: usize,
+    pub frame_width: usize,
+    pub frame_height: usize,
+    pub iteration_completed: bool,
+}
+
 impl Renderer {
     pub fn new(
         width: usize,
@@ -63,11 +74,12 @@ impl Renderer {
     }
     pub fn render(
         &mut self,
-        tx_channel: std::sync::mpsc::Sender<(Vec<Vec3>, usize, usize)>,
+        tx_channel: std::sync::mpsc::Sender<ResultMessage>,
         cancel: Arc<AtomicBool>,
     ) {
         let (samples, iterations) = match self.render_mode {
-            RenderMode::Pathtracing => (10, 20000),
+            RenderMode::Pathtracing => (100, 2000),
+            RenderMode::Raytrace => (8, 1),
             _ => (1, 1),
         };
 
@@ -87,9 +99,11 @@ impl Renderer {
                     for x in 0..self.width {
                         let mut color = Vec3::new(0.0, 0.0, 0.0);
                         for _ in 0..samples {
+                            let u: f32 = rng.random_range(0.0..1.0);
+                            let v: f32 = rng.random_range(0.0..1.0);
                             let ray = self.camera.generate_ray(
-                                x as f32 / self.width as f32,
-                                y as f32 / self.height as f32,
+                                (x as f32 + u) / self.width as f32,
+                                (y as f32 + v)/ self.height as f32,
                             );
 
                             let best_hit =
@@ -110,17 +124,45 @@ impl Renderer {
                         row[x].color += color;
                         row[x].sample_count += samples as u32;
                     }
+
+                    match self.render_mode {
+                        RenderMode::Pathtracing | RenderMode::Raytrace  => {
+                            tx_channel
+                                .send(ResultMessage {
+                                    pixels: row
+                                        .iter()
+                                        .map(|p| p.color / (p.sample_count as f32))
+                                        .collect::<Vec<Vec3>>(),
+                                    x: 0,
+                                    y: y,
+                                    width: self.width,
+                                    height: 1,
+                                    frame_width: self.width,
+                                    frame_height: self.height,
+                                    iteration_completed: false
+                                }
+                                )
+                                .unwrap();
+                        },
+                        _ => {},
+                    };
                 });
 
             tx_channel
-                .send((
-                    self.frame_buffer
+                .send(ResultMessage {
+                    pixels: self.frame_buffer
                         .iter()
                         .map(|p| p.color / (p.sample_count as f32))
                         .collect::<Vec<Vec3>>(),
-                    self.width,
-                    self.height,
-                ))
+                    x: 0,
+                    y: 0,
+                    width: self.width,
+                    height: self.height,
+                    frame_width: self.width,
+                    frame_height: self.height,
+                    iteration_completed: true
+                }
+                )
                 .unwrap();
         }
     }

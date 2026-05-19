@@ -1,5 +1,5 @@
 use glam::{Quat, Vec3};
-
+use rand::prelude::SmallRng;
 use crate::types::Ray;
 
 #[derive(Copy, Clone, Debug)]
